@@ -2,8 +2,12 @@ import network
 import socket
 from time import sleep
 from picozero import pico_temp_sensor, pico_led
-import machine
+from machine import Pin
 
+
+stepper_enable = Pin(2, Pin.OUT, value=1 )
+stepper_dir_pin = machine.Pin(3,machine.Pin.OUT, value=1)
+stepper_step_pin = machine.Pin(4,machine.Pin.OUT, value=1)
 ssid = 'J2N2'
 password = 'arduin0c00kb00k'
 
@@ -60,13 +64,25 @@ def serve(connection):
         except IndexError:
             pass
         if request == '/lighton?':
-            pico_led.on()
+            rotate(200,0)
         elif request =='/lightoff?':
-            pico_led.off()
+            rotate(10,0)
         html = webpage(temperature, state)
         client.send(html)
         client.close()
 
+def rotate(steps,dir):
+    stepper_dir_pin.value(dir)
+    sleep(0.01)
+    stepper_enable.value(0)
+    sleep(0.01)
+    for step in range(0, steps):
+        stepper_step_pin.value(1)
+        sleep(0.01)
+        stepper_step_pin.value(0)
+        sleep(0.01)
+    sleep(0.1)
+    stepper_enable.value(1)
 
 try:
     ip=connect()
