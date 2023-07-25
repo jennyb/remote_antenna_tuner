@@ -10,6 +10,7 @@ stepper_dir_pin = machine.Pin(3,machine.Pin.OUT, value=1)
 stepper_step_pin = machine.Pin(4,machine.Pin.OUT, value=1)
 ssid = 'J2N2'
 password = 'arduin0c00kb00k'
+stepcounter = 0 # 0=forwards, 1=backwards 
 
 def connect():
     #Connect to WLAN
@@ -43,7 +44,7 @@ def webpage(temperature, state):
             <form action="./lightoff">
             <input type="submit" value="Light off" />
             </form>
-            <p>LED is {state}</p>
+            <p>stepcounter is {stepcounter}</p>
             <p>Temperature is {temperature}</p>
             </body>
             </html>
@@ -72,6 +73,7 @@ def serve(connection):
         client.close()
 
 def rotate(steps,dir):
+    global stepcounter
     stepper_dir_pin.value(dir)
     sleep(0.01)
     stepper_enable.value(0)
@@ -81,6 +83,10 @@ def rotate(steps,dir):
         sleep(0.01)
         stepper_step_pin.value(0)
         sleep(0.01)
+        if (dir ):
+            stepcounter -= 1
+        else :
+            stepcounter += 1
     sleep(0.1)
     stepper_enable.value(1)
 
