@@ -10,7 +10,9 @@ stepper_dir_pin = machine.Pin(3,machine.Pin.OUT, value=1)
 stepper_step_pin = machine.Pin(4,machine.Pin.OUT, value=1)
 ssid = 'J2N2'
 password = 'arduin0c00kb00k'
-stepcounter = 0 
+stepcounter1 = 0
+stepcounter2 = 0
+stepcounter3 = 0 
 
 def connect():
     #Connect to WLAN
@@ -39,13 +41,26 @@ def webpage(temperature, state):
             <!DOCTYPE html>
             <html>
             <form>
-            <input type="submit" name='1_0_10' value="Step Backwards 10" />
-            <input type="submit" name='1_0_1' value="Step Backwards 1" />
-            <input type="submit" name='1_1_1' value="Step Foward 1" />
-            <input type="submit" name='1_1_10' value="Step Foward 10" />
+            <input type="submit" name='1_0_10' value="Stepper1 Backwards 10" />
+            <input type="submit" name='1_0_1' value="Stepper1 Backwards 1" />
+            <input type="submit" name='1_1_1' value="Stepper1 Foward 1" />
+            <input type="submit" name='1_1_10' value="Stepper1 Foward 10" />
             </form>
-            <p>stepcounter is {stepcounter}</p>
-            <p>Temperature is {temperature}</p>
+            <form>
+            <input type="submit" name='2_0_10' value="Stepper2 Backwards 10" />
+            <input type="submit" name='2_0_1' value="Stepper2 Backwards 1" />
+            <input type="submit" name='2_1_1' value="Stepper2 Foward 1" />
+            <input type="submit" name='2_1_10' value="Stepper2 Foward 10" />
+            </form>
+            <form>
+            <input type="submit" name='3_0_10' value="Stepper3 Backwards 10" />
+            <input type="submit" name='3_0_1' value="Stepper3 Backwards 1" />
+            <input type="submit" name='3_1_1' value="Stepper3 Foward 1" />
+            <input type="submit" name='3_1_10' value="Stepper3 Foward 10" />
+            </form>            
+            <p>Stepper Motor 1 counter is {stepcounter1}</p>
+            <p>Stepper Motor 2 counter is {stepcounter2}</p>
+            <p>Stepper Motor 2 counter is {stepcounter3}</p>            
             </body>
             </html>
             """
@@ -65,7 +80,6 @@ def serve(connection):
         except IndexError:
             pass
         name = request[2:].split('=')[0]
-        print(name)
         if (len(name.split('_')) == 3):
             # name is s_d_n
             # s servo number
@@ -81,7 +95,9 @@ def serve(connection):
         client.close()
 
 def rotate(steps,direction):
-    global stepcounter
+    global stepcounter1
+    global stepcounter2
+    global stepcounter3    
     stepper_dir_pin.value(direction)
     sleep(0.01)
     stepper_enable.value(0)
@@ -92,9 +108,9 @@ def rotate(steps,direction):
         stepper_step_pin.value(0)
         sleep(0.01)
         if (direction ):
-            stepcounter -= 1
+            stepcounter1 += 1
         else :
-            stepcounter += 1
+            stepcounter1 -= 1
     sleep(0.1)
     stepper_enable.value(1)
 
