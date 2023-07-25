@@ -10,7 +10,7 @@ stepper_dir_pin = machine.Pin(3,machine.Pin.OUT, value=1)
 stepper_step_pin = machine.Pin(4,machine.Pin.OUT, value=1)
 ssid = 'J2N2'
 password = 'arduin0c00kb00k'
-stepcounter = 0 # 0=forwards, 1=backwards 
+stepcounter = 0 
 
 def connect():
     #Connect to WLAN
@@ -38,11 +38,11 @@ def webpage(temperature, state):
     html = f"""
             <!DOCTYPE html>
             <html>
-            <form action="./lighton">
-            <input type="submit" value="Light on" />
-            </form>
-            <form action="./lightoff">
-            <input type="submit" value="Light off" />
+            <form>
+            <input type="submit" name='a' value="Step Backwards 10" />
+            <input type="submit" name='b' value="Step Backwards 1" />
+            <input type="submit" name='c' value="Step Foward 1" />
+            <input type="submit" name='d' value="Step Foward 10" />
             </form>
             <p>stepcounter is {stepcounter}</p>
             <p>Temperature is {temperature}</p>
@@ -64,17 +64,22 @@ def serve(connection):
             request = request.split()[1]
         except IndexError:
             pass
-        if request == '/lighton?':
-            rotate(200,0)
-        elif request =='/lightoff?':
+        print(request)
+        if request == '/?c=Step+Foward+1':
+            rotate(1,0)
+        elif request =='/?d=Step+Foward+10':
             rotate(10,0)
+        elif request =='/?b=Step+Backwards+1':
+            rotate(1,1)
+        elif request =='/?a=Step+Backwards+10':
+            rotate(10,1)    
         html = webpage(temperature, state)
         client.send(html)
         client.close()
 
-def rotate(steps,dir):
+def rotate(steps,direction):
     global stepcounter
-    stepper_dir_pin.value(dir)
+    stepper_dir_pin.value(direction)
     sleep(0.01)
     stepper_enable.value(0)
     sleep(0.01)
@@ -83,7 +88,7 @@ def rotate(steps,dir):
         sleep(0.01)
         stepper_step_pin.value(0)
         sleep(0.01)
-        if (dir ):
+        if (direction ):
             stepcounter -= 1
         else :
             stepcounter += 1
