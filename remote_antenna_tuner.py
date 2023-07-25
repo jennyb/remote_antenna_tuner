@@ -39,10 +39,10 @@ def webpage(temperature, state):
             <!DOCTYPE html>
             <html>
             <form>
-            <input type="submit" name='a' value="Step Backwards 10" />
-            <input type="submit" name='b' value="Step Backwards 1" />
-            <input type="submit" name='c' value="Step Foward 1" />
-            <input type="submit" name='d' value="Step Foward 10" />
+            <input type="submit" name='1_0_10' value="Step Backwards 10" />
+            <input type="submit" name='1_0_1' value="Step Backwards 1" />
+            <input type="submit" name='1_1_1' value="Step Foward 1" />
+            <input type="submit" name='1_1_10' value="Step Foward 10" />
             </form>
             <p>stepcounter is {stepcounter}</p>
             <p>Temperature is {temperature}</p>
@@ -64,15 +64,18 @@ def serve(connection):
             request = request.split()[1]
         except IndexError:
             pass
-        print(request)
-        if request == '/?c=Step+Foward+1':
-            rotate(1,0)
-        elif request =='/?d=Step+Foward+10':
-            rotate(10,0)
-        elif request =='/?b=Step+Backwards+1':
-            rotate(1,1)
-        elif request =='/?a=Step+Backwards+10':
-            rotate(10,1)    
+        name = request[2:].split('=')[0]
+        print(name)
+        if (len(name.split('_')) == 3):
+            # name is s_d_n
+            # s servo number
+            # d direction (0,1)
+            # n number of turns
+            s = int(name.split('_')[0])
+            d = int(name.split('_')[1])
+            n = int(name.split('_')[2])
+            rotate(n,d)
+        
         html = webpage(temperature, state)
         client.send(html)
         client.close()
