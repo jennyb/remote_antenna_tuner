@@ -3,16 +3,41 @@ import socket
 from time import sleep
 from picozero import pico_temp_sensor, pico_led
 from machine import Pin
+import os
+import json
 
+
+
+ssid = 'ssid'
+password = 'password'
 
 stepper_enable = Pin(2, Pin.OUT, value=1 )
 stepper_dir_pin = machine.Pin(3,machine.Pin.OUT, value=1)
 stepper_step_pin = machine.Pin(4,machine.Pin.OUT, value=1)
-ssid = 'J2N2'
-password = 'arduin0c00kb00k'
 stepcounter1 = 0
 stepcounter2 = 0
 stepcounter3 = 0 
+file = 'config.txt'
+
+#https://forums.raspberrypi.com/viewtopic.php?t=340983
+def get_config_default(file):
+    try:
+        with open(file) as fd:
+            return json.load(fd)
+
+    except OSError:
+        with open(file, "w") as fd:
+            config = {
+                "stepper1_en": 1,
+                "stepper1_dir": 6,
+                "stepper1_step": 7,
+                "ssid": "default network",
+                "password": "default password",
+            }
+            json.dump(config, fd)
+            return config
+
+
 
 def connect():
     #Connect to WLAN
