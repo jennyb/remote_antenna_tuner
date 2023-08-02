@@ -81,10 +81,10 @@ def webpage(temperature, state):
             <input type="submit" name='1_1_10' value="Stepper1 Foward 10" />
             </form>
             <form>
-            <input type="submit" name='2_0_10' value="Stepper2 Backwards 10" />
-            <input type="submit" name='2_0_1' value="Stepper2 Backwards 1" />
-            <input type="submit" name='2_1_1' value="Stepper2 Foward 1" />
-            <input type="submit" name='2_1_10' value="Stepper2 Foward 10" />
+            <input type="submit" name='2_0_200' value="Stepper2 Backwards 1 turn" />
+            <input type="submit" name='2_0_100' value="Stepper2 Backwards 0.5 turns" />
+            <input type="submit" name='2_1_100' value="Stepper2 Foward 0.5 turns" />
+            <input type="submit" name='2_1_200' value="Stepper2 Foward 1 turn" />
             </form>
             <form>
             <input type="submit" name='3_0_10' value="Stepper3 Backwards 10" />
@@ -164,6 +164,10 @@ def rotate(motor,steps,direction):
             step_counter[motor] -= 1
     sleep(0.1)
     stepper_enable.value(1)
+
+
+
+get_config_default(file)
 
 try:
     ip=connect()
