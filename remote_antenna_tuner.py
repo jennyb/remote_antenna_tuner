@@ -6,27 +6,48 @@ from machine import Pin
 import os
 import json
 
-
-
+class Stepper:
+    def __init__(self, name:str, step_pin:Pin, dir_pin:Pin, counter=0):
+        self.name = name
+        self.step_pin = step_pin
+        self.dir_pin = dir_pin
+        self.counter = counter
+        self.step_pin.init(mode=Pin.OUT,value=1)
+        self.dir_pin.init(mode=Pin.OUT,value=1)
+        
+    def rotate(self, direction, steps):
+        print (self.name,direction, steps, self.step_pin, self.dir_pin)
+        self.dir_pin.value(direction)
+        stepper_enable.value(0)
+        sleep(0.01)
+   
+        for step in range(0, steps):
+            self.step_pin.value(1)
+            sleep(0.01)
+            self.step_pin.value(0)
+            sleep(0.01)
+            if (direction ):
+                self.counter += 1
+            else :
+                self.counter -= 1
+        sleep(0.1)
+        stepper_enable.value(1)
+    
 ssid = 'J2N2'
 password = 'arduin0c00kb00k'
 
+# the pi pico is connected to a cheap CNC driver boad
+# pins X,Y,Z step and X,Y,Z dir and one enable pin for all
+# are connected to 9,8,7 step and 6,5,4 direction and 3 enable
+
+motors = [Stepper('transmitter', Pin(9), Pin(6)),
+          Stepper('antenna', Pin(8), Pin(5)),
+          Stepper('inductance', Pin(7), Pin(4))]
+
 stepper_enable = Pin(3, Pin.OUT, value=1 )
-stepper1_step_pin = machine.Pin(9,machine.Pin.OUT, value=1)
-stepper2_step_pin = machine.Pin(8,machine.Pin.OUT, value=1)
-stepper3_step_pin = machine.Pin(7,machine.Pin.OUT, value=1)
-stepper1_dir_pin = machine.Pin(6,machine.Pin.OUT, value=1)
-stepper2_dir_pin = machine.Pin(5,machine.Pin.OUT, value=1)
-stepper3_dir_pin = machine.Pin(4,machine.Pin.OUT, value=1)
-stepcounter1 = 0
-stepcounter2 = 0
-stepcounter3 = 0 
+
 file = 'config.txt'
 
-step_pin = [stepper1_step_pin, stepper2_step_pin, stepper3_step_pin]
-dir_pin = [stepper1_dir_pin, stepper2_dir_pin, stepper3_dir_pin]
-step_counter = [stepcounter1, stepcounter2, stepcounter3]
-    
 
 #https://forums.raspberrypi.com/viewtopic.php?t=340983
 def get_config_default(file):
@@ -75,26 +96,26 @@ def webpage(temperature, state):
             <!DOCTYPE html>
             <html>
             <form>
-            <input type="submit" name='1_0_10' value="Stepper1 Backwards 10" />
-            <input type="submit" name='1_0_1' value="Stepper1 Backwards 1" />
-            <input type="submit" name='1_1_1' value="Stepper1 Foward 1" />
-            <input type="submit" name='1_1_10' value="Stepper1 Foward 10" />
+            <input type="submit" name='0_0_10' value="Stepper1 Backwards 10" />
+            <input type="submit" name='0_0_1' value="Stepper1 Backwards 1" />
+            <input type="submit" name='0_1_1' value="Stepper1 Foward 1" />
+            <input type="submit" name='0_1_10' value="Stepper1 Foward 10" />
             </form>
             <form>
-            <input type="submit" name='2_0_200' value="Stepper2 Backwards 1 turn" />
-            <input type="submit" name='2_0_100' value="Stepper2 Backwards 0.5 turns" />
-            <input type="submit" name='2_1_100' value="Stepper2 Foward 0.5 turns" />
-            <input type="submit" name='2_1_200' value="Stepper2 Foward 1 turn" />
+            <input type="submit" name='1_0_200' value="Stepper2 Backwards 1 turn" />
+            <input type="submit" name='1_0_100' value="Stepper2 Backwards 0.5 turns" />
+            <input type="submit" name='1_1_100' value="Stepper2 Foward 0.5 turns" />
+            <input type="submit" name='1_1_200' value="Stepper2 Foward 1 turn" />
             </form>
             <form>
-            <input type="submit" name='3_0_10' value="Stepper3 Backwards 10" />
-            <input type="submit" name='3_0_1' value="Stepper3 Backwards 1" />
-            <input type="submit" name='3_1_1' value="Stepper3 Foward 1" />
-            <input type="submit" name='3_1_10' value="Stepper3 Foward 10" />
+            <input type="submit" name='2_0_10' value="Stepper3 Backwards 10" />
+            <input type="submit" name='2_0_1' value="Stepper3 Backwards 1" />
+            <input type="submit" name='2_1_1' value="Stepper3 Foward 1" />
+            <input type="submit" name='2_1_10' value="Stepper3 Foward 10" />
             </form>            
-            <p>Stepper Motor 1 counter is {stepcounter1}</p>
-            <p>Stepper Motor 2 counter is {stepcounter2}</p>
-            <p>Stepper Motor 3 counter is {stepcounter3}</p>
+            <p>Stepper Motor 1 counter is {motors[0].counter}</p>
+            <p>Stepper Motor 2 counter is {motors[1].counter}</p>
+            <p>Stepper Motor 3 counter is {motors[2].counter}</p>
             <form>
             <input type="submit" name='4_0_0' value="Recall 160m Low" />
             <input type="submit" name='4_0_1' value="Recall 160m High" />
@@ -134,38 +155,11 @@ def serve(connection):
             s = int(name.split('_')[0])
             d = int(name.split('_')[1])
             n = int(name.split('_')[2])
-            rotate(s,n,d)
+            motors[s].rotate(d,n)
         
         html = webpage(temperature, state)
         client.send(html)
         client.close()
-
-def rotate(motor,steps,direction):
-    global stepcounter1
-    global stepcounter2
-    global stepcounter3
-    
-    if (motor):
-        motor -= 1
-    
-    print(motor,steps,direction)
-    dir_pin[motor].value(direction)
-    stepper_enable.value(0)
-    sleep(0.01)
-   
-    for step in range(0, steps):
-        step_pin[motor].value(1)
-        sleep(0.01)
-        step_pin[motor](0)
-        sleep(0.01)
-        if (direction ):
-            step_counter[motor] += 1
-        else :
-            step_counter[motor] -= 1
-    sleep(0.1)
-    stepper_enable.value(1)
-
-
 
 get_config_default(file)
 
@@ -173,7 +167,9 @@ try:
     ip=connect()
     connection=open_socket(ip)
     serve(connection)
-    
+    connection.close()
+
     
 except KeyboardInterrupt:
+
     machine.reset()
