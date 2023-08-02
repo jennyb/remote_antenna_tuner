@@ -23,6 +23,11 @@ stepcounter2 = 0
 stepcounter3 = 0 
 file = 'config.txt'
 
+step_pin = [stepper1_step_pin, stepper2_step_pin, stepper3_step_pin]
+dir_pin = [stepper1_dir_pin, stepper2_dir_pin, stepper3_dir_pin]
+step_counter = [stepcounter1, stepcounter2, stepcounter3]
+    
+
 #https://forums.raspberrypi.com/viewtopic.php?t=340983
 def get_config_default(file):
     try:
@@ -89,10 +94,16 @@ def webpage(temperature, state):
             </form>            
             <p>Stepper Motor 1 counter is {stepcounter1}</p>
             <p>Stepper Motor 2 counter is {stepcounter2}</p>
-            <p>Stepper Motor 2 counter is {stepcounter3}</p>
+            <p>Stepper Motor 3 counter is {stepcounter3}</p>
             <form>
             <input type="submit" name='4_0_0' value="Recall 160m Low" />
             <input type="submit" name='4_0_1' value="Recall 160m High" />
+            <input type="submit" name='4_0_2' value="Save 160m Low" />
+            <input type="submit" name='4_0_3' value="Save 160m High" />
+            </form>
+            <form>
+            <input type="submit" name='4_0_0' value="Recall 80m Low" />
+            <input type="submit" name='4_0_1' value="Recall 80m High" />
             <input type="submit" name='4_0_2' value="Save 80m Low" />
             <input type="submit" name='4_0_3' value="Save 80m High" />
             </form> 
@@ -134,19 +145,23 @@ def rotate(motor,steps,direction):
     global stepcounter2
     global stepcounter3
     
-    stepper1_dir_pin.value(direction)
-    sleep(0.01)
+    if (motor):
+        motor -= 1
+    
+    print(motor,steps,direction)
+    dir_pin[motor].value(direction)
     stepper_enable.value(0)
     sleep(0.01)
+   
     for step in range(0, steps):
-        stepper1_step_pin.value(1)
+        step_pin[motor].value(1)
         sleep(0.01)
-        stepper1_step_pin.value(0)
+        step_pin[motor](0)
         sleep(0.01)
         if (direction ):
-            stepcounter1 += 1
+            step_counter[motor] += 1
         else :
-            stepcounter1 -= 1
+            step_counter[motor] -= 1
     sleep(0.1)
     stepper_enable.value(1)
 
