@@ -8,12 +8,16 @@ import json
 
 
 
-ssid = 'ssid'
-password = 'password'
+ssid = 'J2N2'
+password = 'arduin0c00kb00k'
 
-stepper_enable = Pin(2, Pin.OUT, value=1 )
-stepper_dir_pin = machine.Pin(3,machine.Pin.OUT, value=1)
-stepper_step_pin = machine.Pin(4,machine.Pin.OUT, value=1)
+stepper_enable = Pin(3, Pin.OUT, value=1 )
+stepper1_step_pin = machine.Pin(9,machine.Pin.OUT, value=1)
+stepper2_step_pin = machine.Pin(8,machine.Pin.OUT, value=1)
+stepper3_step_pin = machine.Pin(7,machine.Pin.OUT, value=1)
+stepper1_dir_pin = machine.Pin(6,machine.Pin.OUT, value=1)
+stepper2_dir_pin = machine.Pin(5,machine.Pin.OUT, value=1)
+stepper3_dir_pin = machine.Pin(4,machine.Pin.OUT, value=1)
 stepcounter1 = 0
 stepcounter2 = 0
 stepcounter3 = 0 
@@ -85,7 +89,13 @@ def webpage(temperature, state):
             </form>            
             <p>Stepper Motor 1 counter is {stepcounter1}</p>
             <p>Stepper Motor 2 counter is {stepcounter2}</p>
-            <p>Stepper Motor 2 counter is {stepcounter3}</p>            
+            <p>Stepper Motor 2 counter is {stepcounter3}</p>
+            <form>
+            <input type="submit" name='4_0_0' value="Recall 160m Low" />
+            <input type="submit" name='4_0_1' value="Recall 160m High" />
+            <input type="submit" name='4_0_2' value="Save 80m Low" />
+            <input type="submit" name='4_0_3' value="Save 80m High" />
+            </form> 
             </body>
             </html>
             """
@@ -113,24 +123,25 @@ def serve(connection):
             s = int(name.split('_')[0])
             d = int(name.split('_')[1])
             n = int(name.split('_')[2])
-            rotate(n,d)
+            rotate(s,n,d)
         
         html = webpage(temperature, state)
         client.send(html)
         client.close()
 
-def rotate(steps,direction):
+def rotate(motor,steps,direction):
     global stepcounter1
     global stepcounter2
-    global stepcounter3    
-    stepper_dir_pin.value(direction)
+    global stepcounter3
+    
+    stepper1_dir_pin.value(direction)
     sleep(0.01)
     stepper_enable.value(0)
     sleep(0.01)
     for step in range(0, steps):
-        stepper_step_pin.value(1)
+        stepper1_step_pin.value(1)
         sleep(0.01)
-        stepper_step_pin.value(0)
+        stepper1_step_pin.value(0)
         sleep(0.01)
         if (direction ):
             stepcounter1 += 1
