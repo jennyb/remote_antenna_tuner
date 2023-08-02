@@ -61,8 +61,8 @@ def get_config_default(file):
                 "stepper1_en": 1,
                 "stepper1_dir": 6,
                 "stepper1_step": 7,
-                "ssid": "default network",
-                "password": "default password",
+                "ssid": "J2N2",
+                "password": "arduin0c00kb00k",
             }
             json.dump(config, fd)
             return config
