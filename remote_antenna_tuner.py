@@ -6,8 +6,6 @@ from machine import Pin
 import os
 import json
 
-ssid = 'J2N2'
-password = 'arduin0c00kb00k'
 
 class Stepper:
     def __init__(self, name:str, step_pin:Pin, dir_pin:Pin, counter=0):
@@ -72,34 +70,44 @@ memories = [Memory(20,78,100),
 
 stepper_enable = Pin(3, Pin.OUT, value=1 )
 
-file = 'config.txt'
 
-
-#https://forums.raspberrypi.com/viewtopic.php?t=340983
+#This file holds config, stepper motor positions and memories
+file = 'xyzzy.txt'
+# https://forums.raspberrypi.com/viewtopic.php?t=340983
 def get_config_default(file):
     try:
         with open(file) as fd:
             return json.load(fd)
+            fd.close()
 
     except OSError:
         with open(file, "w") as fd:
             config = {
-                "stepper1_en": 1,
-                "stepper1_dir": 6,
-                "stepper1_step": 7,
+                "stepper1_stored_pos": 0,
+                "stepper2_stored_pos": 0,
+                "stepper3_stored_pos": 0,
                 "ssid": "default",
                 "password": "default",
             }
             json.dump(config, fd)
+            fd.close()
             return config
 
+
+def save_motor_positions(file,x,y,z):
+    with open(file, "w") as fd:
+        config["stepper0_stored_pos"] = motors[0].counter
+        config["stepper1_stored_pos"] = motors[1].counter
+        config["stepper2_stored_pos"] = motors[2].counter
+        json.dump(config, fd)
+        fd.close()
 
 
 def connect():
     #Connect to WLAN
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
-    wlan.connect(ssid, password)
+    wlan.connect(config["ssid"] ,  config["password"] )
     while wlan.isconnected() == False:
         print('Waiting for connection...')
         sleep(1)
@@ -159,6 +167,11 @@ def webpage(temperature, state):
             """
     return str(html)
 
+
+
+
+    
+
 def serve(connection):
     #Start a web server
     state = 'OFF'
@@ -187,6 +200,8 @@ def serve(connection):
             #process name to move stepper motor
             if f == 's':
                 motors[s].rotate(d,n)
+                save_motor_positions(file,motors[0].counter,motors[1].counter,motors[2].counter)
+                
             elif f == 'm':
                 # process name to change stepper motor position memory
                 # where s is ignored, d=0 ( recall ) d=1 ( write ), n is memory number
@@ -209,10 +224,7 @@ def serve(connection):
                             motors[each_motor].rotate(1,offset)
                         elif ( offset <=0 ):
                             motors[each_motor].rotate(0,abs(offset))
-                            
-                        
-                    
-                    
+                        save_motor_positions(file,motors[0].counter,motors[1].counter,motors[2].counter)
         else:
             pass
             #print('name length incorrect')
@@ -222,7 +234,11 @@ def serve(connection):
         client.send(html)
         client.close()
 
-#get_config_default(file)
+config = get_config_default(file)
+print( config )
+motors[0].counter = config["stepper0_stored_pos"]
+motors[1].counter = config["stepper1_stored_pos"]
+motors[2].counter = config["stepper2_stored_pos"]
 
 try:
     ip=connect()
