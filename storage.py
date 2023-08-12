@@ -110,7 +110,7 @@ if __name__ == '__main__':
     nv_data.write_memory(file, 3,test_positions2)
     print( f'memory 3: {nv_data.get_memory(4)}\n')
     
-    #we don't need to set the password. The user can change the file on the pico to suit their network
+    # We don't need to set the password. The user can change the file on the pico to suit their network
     print( f'SSID: {nv_data.get_ssid()}')
     
     
