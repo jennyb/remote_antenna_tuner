@@ -36,20 +36,20 @@ class Stepper:
     def set(self, new_position:int ):
         pass
 
-class Memory:
-    def __init__(self, steps1:int, steps2:int, steps3:int):
-        # ToDo - read the initial value from a file holding the last readings before being switched off
-        # self.name = name
-        self.store(steps1, steps2, steps3)
-        
-    def store(self, steps1:int, steps2:int, steps3:int):
-        self.steps1 = steps1
-        self.steps2 = steps2
-        self.steps3 = steps3
-        pass
-        
-    def recall(self):
-        return [ self.steps1,self.steps2,self.steps3]
+# class Memory:
+#     def __init__(self, steps1:int, steps2:int, steps3:int):
+#         # ToDo - read the initial value from a file holding the last readings before being switched off
+#         # self.name = name
+#         self.store(steps1, steps2, steps3)
+#         
+#     def store(self, steps1:int, steps2:int, steps3:int):
+#         self.steps1 = steps1
+#         self.steps2 = steps2
+#         self.steps3 = steps3
+#         pass
+#         
+#     def recall(self):
+#         return [ self.steps1,self.steps2,self.steps3]
     
 # the pi pico is connected to a cheap CNC driver boad
 # pins X,Y,Z step and X,Y,Z dir and one enable pin for all
@@ -61,14 +61,14 @@ motors = [Stepper('transmitter', Pin(9), Pin(6)),
 
 # Each memory holds 3 step counts. Currently one for each transmitter, antenna and inductance
 # ToDo - I've had to do this longhand, need to make the number of memories configurable 
-memories = [Memory(20,78,100),
-            Memory(15,65,50),
-            Memory(0,0,0),
-            Memory(0,0,0),
-            Memory(0,0,0),
-            Memory(0,0,0),
-            Memory(0,0,0),            
-            Memory(0,0,0)]
+# memories = [Memory(0,0,0),
+#             Memory(0,0,0),
+#             Memory(0,0,0),
+#             Memory(0,0,0),
+#             Memory(0,0,0),
+#             Memory(0,0,0),
+#             Memory(0,0,0),            
+#             Memory(0,0,0)]
 
 stepper_enable = Pin(3, Pin.OUT, value=1 )
 
@@ -182,12 +182,13 @@ def serve(connection):
                 # where s is ignored, d=0 ( recall ) d=1 ( write ), n is memory number
                 if ( d ):
                     #save memory
-                    memories[n].store( motors[0].counter,motors[1].counter,motors[2].counter )
+                    nv_data.write_memory(file, n, [motors[0].counter,motors[1].counter,motors[2].counter])
+                    #memories[n].store( motors[0].counter,motors[1].counter,motors[2].counter )
 
                 else:
                     # recall stepper value for this frequency, workout the change required to go there
                     for each_motor in range(3):
-                        offset = memories[n].recall()[each_motor] - motors[each_motor].counter
+                        offset = nv_data.get_memory(n)[each_motor] - motors[each_motor].counter
                         #for the capacitors, they only should be set 0 - 100 as they are only useful over 180 degrees
                         #and capacitors should not be sent to negative settings - it will work but will only confuse the situation
                         #the inductor ( rollercoaster ) should not try to go to a negative reason. Mechanically it cannot go to a negative position 
@@ -197,7 +198,7 @@ def serve(connection):
                             motors[each_motor].rotate(0,abs(offset))
                             
                         nv_data.write_current_steppers( file, [motors[0].counter,motors[1].counter,motors[2].counter])
-                        #save_motor_positions(motors[0].counter,motors[1].counter,motors[2].counter)
+
                 
         else:
             pass

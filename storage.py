@@ -34,17 +34,6 @@ class Storage:
                 json.dump(self.config, fd)
                 fd.close()
 
-#     def dump_file( self, file:str ):
-#         with open(file, "w") as fd:
-#             self.config = {
-#                     "stepper_stored_pos": self.steppers,
-#                     "memory": self.memories,
-#                     "ssid": self.ssid,
-#                     "password": self.password,
-#             }
-#             json.dump(self.config, fd)
-#             fd.close()        
-
     def write_memory( self, file:str,  memory_number:int, mem_steppers):
         with open(file, "w") as fd:
             self.config['memory'][memory_number] = mem_steppers
@@ -56,7 +45,6 @@ class Storage:
             self.config["stepper_stored_pos"] = current_steps
             json.dump(self.config, fd)
             fd.close()         
-
 
     def get_stepper_positions(self):
         return self.config["stepper_stored_pos"] 
@@ -70,29 +58,8 @@ class Storage:
     def get_password( self ):
         return self.config["password"]
  
-    # DEBUG ONLY
-    def dump_file( self ):
-        print('File')
-        with open(file) as fd:
-            self.config = json.load(fd)
-            print ( self.config["stepper_stored_pos"] )
-            print ( self.config["memory"] )
-            print ( self.config["ssid"] )
-            print ( self.config["password"] )
-            fd.close()
-
-    # DEBUG ONLY
-    def dump_memory( self ):
-            print ( self.config["stepper_stored_pos"] )
-            print ( self.config["memory"] )
-            print ( self.config["ssid"] )
-            print ( self.config["password"] )
-            
-            
- 
-
-
 if __name__ == '__main__':
+    # test data :
     # fill the memory space for 5 bands, high and low settings for each 
 
     test_positions1 = [16,250,8]
@@ -105,16 +72,14 @@ if __name__ == '__main__':
     print( f'current stepper positions: {nv_data.get_stepper_positions()}\n')
     
     nv_data.write_memory(file, 3,test_positions1)
-    print( f'memory 3: {nv_data.get_memory(4)}\n')
+    print( f'memory 3: {nv_data.get_memory(3)}\n')
     
     nv_data.write_memory(file, 3,test_positions2)
-    print( f'memory 3: {nv_data.get_memory(4)}\n')
+    print( f'memory 3: {nv_data.get_memory(3)}\n')
     
     # We don't need to set the password. The user can change the file on the pico to suit their network
     print( f'SSID: {nv_data.get_ssid()}')
     
-    
-    nv_data.dump_file() 
-    nv_data.dump_memory()
+
 
     
