@@ -9,7 +9,7 @@ import json
 # locations ( number of steps )
 # The class also handles saving to files for the stepper positions and memories
 class Storage:
-    def __init__(self, file ):
+    def __init__(self, file:str ):
         try:
             with open(file) as fd:
                 self.config = json.load(fd)
@@ -49,7 +49,7 @@ class Storage:
     def get_stepper_positions(self):
         return self.config["stepper_stored_pos"] 
 
-    def get_memory(self, memory_number):
+    def get_memory(self, memory_number:str):
         return self.config['memory'][memory_number]
     
     def get_ssid( self ):
