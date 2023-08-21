@@ -20,7 +20,6 @@ class LocalDisplay:
         # using this hardware https://shop.pimoroni.com/products/pico-display-pack-2-0?variant=39374122582099
         self.display = PicoGraphics(display=DISPLAY_PICO_DISPLAY_2, pen_type=PEN_P4, rotate=0)
         
-        # ask Tom ( do I really need to use self ? )
         self.WHITE = self.display.create_pen(255, 255, 255)
         self.BLACK = self.display.create_pen(0, 0, 0)
         self.CYAN = self.display.create_pen(0, 255, 255)
@@ -34,10 +33,10 @@ class LocalDisplay:
 
         # attach each button to a GPIO so that it can be polled
         # ToDo - make these interrupt based
-        self.button_a = Button(12)
-        self.button_b = Button(13)
-        self.button_x = Button(14)
-        self.button_y = Button(15)
+        #self.button_a = Button(12)
+        #self.button_b = Button(13)
+        #self.button_x = Button(14)
+        #self.button_y = Button(15)
 
 
 
@@ -77,66 +76,120 @@ class LocalDisplay:
         self.memory_number = mem_no
         self.display_steppers()
 
-    def check_buttons(self):
-        while True:
-            # button A selects which stepper motor to use, it will cycle through 1,2,3,1 etc
-            if (self.button_a.read()): 
-                self.selected_stepper_motor += 1
-                self.selected_stepper_motor =  self.selected_stepper_motor %5
-                if ( self.selected_stepper_motor == 3):
-                    # steps field selected. options are 1,10,1000 per press
-                    self.steps_field_selected = 1
-                    self.memory_field_selected = 0
-                elif ( self.selected_stepper_motor == 4):
-                    # memory selected 0 .. 9
-                    self.steps_field_selected = 0
-                    self.memory_field_selected = 1
-                else:
-                   # stepper live control selected
-                    self.steps_field_selected = 0
-                    self.memory_field_selected = 0            
+    def button_a_pressed(self):
+        self.selected_stepper_motor += 1
+        self.selected_stepper_motor =  self.selected_stepper_motor %5
+        if ( self.selected_stepper_motor == 3):
+            # steps field selected. options are 1,10,1000 per press
+            self.steps_field_selected = 1
+            self.memory_field_selected = 0
+        elif ( self.selected_stepper_motor == 4):
+            # memory selected 0 .. 9
+            self.steps_field_selected = 0
+            self.memory_field_selected = 1
+        else:
+            # stepper live control selected
+            self.steps_field_selected = 0
+            self.memory_field_selected = 0            
                     
-                self.display_steppers()
+        self.display_steppers()    
 
-            elif (self.button_b.read()):
-                self.display.set_pen(BLACK)
-                self.display.clear()
-                self.display.set_pen(MAGENTA)
-                self.display.text("Do not  ", 0, 30, 320, scale=2)
-                self.display.text("press this ", 0, 80, 320, scale=2)        
-                self.display.text("button ", 0, 140, 320, scale=2)
-                self.display.text("again !", 0, 200, 320, scale=2)        
-                self.display_steppers()
-            
-            elif (self.button_x.read()): # ToDo check limits
-                if ( (self.steps_field_selected == 0) and (self.memory_field_selected == 0) ):
-                    self.stepper_values[self.selected_stepper_motor] += self.steps_per_push
-                elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ):
-                    self.steps_per_push = self.steps_per_push * 10
-                elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ):
-                    self.memory_number = self.memory_number + 1
-                self.display_steppers()
-                
-            elif self.button_y.read(): # ToDo should only be able to select 1,10,100,1000
-                if ( (self.steps_field_selected == 0) and (self.memory_field_selected == 0) ):
-                    self.stepper_values[self.selected_stepper_motor] -= self.steps_per_push
-                elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ):
-                    self.steps_per_push = self.steps_per_push / 10
-                elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ):
-                    self.memory_number = self.memory_number - 1
-                self.display_steppers()                    
-                    
-            else:
-                #print("Unknown button!")
-                pass
+    def button_b_pressed(self):
+        self.display.set_pen(BLACK)
+        self.display.clear()
+        self.display.set_pen(MAGENTA)
+        self.display.text("Do not  ", 0, 30, 320, scale=2)
+        self.display.text("press this ", 0, 80, 320, scale=2)        
+        self.display.text("button ", 0, 140, 320, scale=2)
+        self.display.text("again !", 0, 200, 320, scale=2)        
+        self.display_steppers()
+        
+    def button_x_pressed(self):
+        if ( (self.steps_field_selected == 0) and (self.memory_field_selected == 0) ):
+            self.stepper_values[self.selected_stepper_motor] += self.steps_per_push
+        elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ):
+            self.steps_per_push = self.steps_per_push * 10
+        elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ):
+            self.memory_number = self.memory_number + 1
+        self.display_steppers()    
+    
+    def button_y_pressed(self):    
+        if ( (self.steps_field_selected == 0) and (self.memory_field_selected == 0) ):
+            self.stepper_values[self.selected_stepper_motor] -= self.steps_per_push
+        elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ):
+            self.steps_per_push = self.steps_per_push / 10
+        elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ):
+            self.memory_number = self.memory_number - 1
+        self.display_steppers()                      
+    
 
-            time.sleep(0.1)  # this number is how frequently the Pico checks for button presses
+#     def check_buttons(self):
+#         while True:
+#             # button A selects which stepper motor to use, it will cycle through 1,2,3,1 etc
+#             if (self.button_a.read()): 
+#                 self.selected_stepper_motor += 1
+#                 self.selected_stepper_motor =  self.selected_stepper_motor %5
+#                 if ( self.selected_stepper_motor == 3):
+#                     # steps field selected. options are 1,10,1000 per press
+#                     self.steps_field_selected = 1
+#                     self.memory_field_selected = 0
+#                 elif ( self.selected_stepper_motor == 4):
+#                     # memory selected 0 .. 9
+#                     self.steps_field_selected = 0
+#                     self.memory_field_selected = 1
+#                 else:
+#                    # stepper live control selected
+#                     self.steps_field_selected = 0
+#                     self.memory_field_selected = 0            
+#                     
+#                 self.display_steppers()
+# 
+#             elif (self.button_b.read()):
+#                 self.display.set_pen(BLACK)
+#                 self.display.clear()
+#                 self.display.set_pen(MAGENTA)
+#                 self.display.text("Do not  ", 0, 30, 320, scale=2)
+#                 self.display.text("press this ", 0, 80, 320, scale=2)        
+#                 self.display.text("button ", 0, 140, 320, scale=2)
+#                 self.display.text("again !", 0, 200, 320, scale=2)        
+#                 self.display_steppers()
+#             
+#             elif (self.button_x.read()): # ToDo check limits
+#                 if ( (self.steps_field_selected == 0) and (self.memory_field_selected == 0) ):
+#                     self.stepper_values[self.selected_stepper_motor] += self.steps_per_push
+#                 elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ):
+#                     self.steps_per_push = self.steps_per_push * 10
+#                 elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ):
+#                     self.memory_number = self.memory_number + 1
+#                 self.display_steppers()
+#                 
+#             elif self.button_y.read(): # ToDo should only be able to select 1,10,100,1000
+#                 if ( (self.steps_field_selected == 0) and (self.memory_field_selected == 0) ):
+#                     self.stepper_values[self.selected_stepper_motor] -= self.steps_per_push
+#                 elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ):
+#                     self.steps_per_push = self.steps_per_push / 10
+#                 elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ):
+#                     self.memory_number = self.memory_number - 1
+#                 self.display_steppers()                    
+#                     
+#             else:
+#                 #print("Unknown button!")
+#                 pass
+# 
+#             time.sleep(0.1)  # this number is how frequently the Pico checks for button presses
         
 if __name__ == '__main__':
     user_display = LocalDisplay()
+
     user_display.set_ip('1.1.1.1')
     user_display.set_memory('3')
-    while True :
-        user_display.check_buttons()
-    
-    
+    user_display.button_x_pressed()
+
+    user_display.button_a_pressed()
+    user_display.button_a_pressed()
+    user_display.button_a_pressed()
+    user_display.button_x_pressed()
+
+    user_display.button_a_pressed()    
+    user_display.button_a_pressed()    
+    user_display.button_y_pressed()
