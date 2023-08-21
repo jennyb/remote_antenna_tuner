@@ -3,118 +3,140 @@ import time
 from pimoroni import Button
 from picographics import PicoGraphics, DISPLAY_PICO_DISPLAY_2, PEN_P4
 
-# using this hardware https://shop.pimoroni.com/products/pico-display-pack-2-0?variant=39374122582099
-display = PicoGraphics(display=DISPLAY_PICO_DISPLAY_2, pen_type=PEN_P4, rotate=0)
-
-display.set_backlight(0.5)
-display.set_font("sans")
-display.set_thickness(2)
-
-button_a = Button(12)
-button_b = Button(13)
-button_x = Button(14)
-button_y = Button(15)
-
-WHITE = display.create_pen(255, 255, 255)
-BLACK = display.create_pen(0, 0, 0)
-CYAN = display.create_pen(0, 255, 255)
-MAGENTA = display.create_pen(255, 0, 255)
-YELLOW = display.create_pen(255, 255, 0)
-GREEN = display.create_pen(0, 255, 0)
-
-# sets up a handy function we can call to clear the screen
-def clear():
-    display.set_pen(BLACK)
-    display.clear()
-    display.update()
-
-def display_steppers(ip_address,stepper_values,steps_per_push,memory_number):
-    display.set_pen(BLACK)
-    display.clear()
-    display.set_pen(GREEN)
-    display.rectangle(0, ((selected_stepper_motor+1) * 40), 320, 40)
-    display.set_pen(MAGENTA)
-    display.text(f"IP: {ip_address}", 0, 20, 320, scale=1 )
-    display.set_pen(WHITE)    
-    display.text(f"Stepper 1: { stepper_values[0] }", 0, 60, 320, scale=1)
-    display.text(f"Stepper 2: { stepper_values[1] }", 0, 100, 320, scale=1)
-    display.text(f"Stepper 3: { stepper_values[2] }", 0, 140, 320, scale=1)
-    display.text(f"Steps: { steps_per_push }", 0, 180, 320, scale=1)
-    display.text(f"Memory: { memory_number }", 0, 220, 320, scale=1)
-    display.update()
-
-def set_ip(ipaddress):
-    pass
-
-def set_steppers(stepper_values):
-    pass
 
 
-# set up
-clear()
-selected_stepper_motor = 0
-steppers = [0,0,0]
-ip_address = "192.168.2.100"
-steps_per_push = 1
-memory_number = 1
-steps_field_selected = 0 # this is non zero when the display field is selected 
-memory_field_selected = 0 # # this is non zero when the memory field is selected 
-display_steppers(ip_address,steppers, steps_per_push, memory_number)
+class LocalDisplay:
+
+    def __init__(self):
+
+        self.stepper_values = [0,0,0] # current location of each stepper motors in steps where one full rotation = 200 steps 
+        self.ip_address = "0.0.0.0" # set by the wifi code and just dumbly displayed to the user
+        self.steps_per_push = 1
+        self.memory_number = 1
+        self.steps_field_selected = 0 # this is non zero when the display field is selected 
+        self.memory_field_selected = 0 # # this is non zero when the memory field is selected
+        self.selected_stepper_motor = 0
+
+        # using this hardware https://shop.pimoroni.com/products/pico-display-pack-2-0?variant=39374122582099
+        self.display = PicoGraphics(display=DISPLAY_PICO_DISPLAY_2, pen_type=PEN_P4, rotate=0)
+        
+        # ask Tom ( do I really need to use self ? )
+        self.WHITE = self.display.create_pen(255, 255, 255)
+        self.BLACK = self.display.create_pen(0, 0, 0)
+        self.CYAN = self.display.create_pen(0, 255, 255)
+        self.MAGENTA = self.display.create_pen(255, 0, 255)
+        self.YELLOW = self.display.create_pen(255, 255, 0)
+        self.GREEN = self.display.create_pen(0, 255, 0)
+        
+        self.display.set_backlight(0.5)
+        self.display.set_font("sans")
+        self.display.set_thickness(2)
+
+        # attach each button to a GPIO so that it can be polled
+        # ToDo - make these interrupt based
+        self.button_a = Button(12)
+        self.button_b = Button(13)
+        self.button_x = Button(14)
+        self.button_y = Button(15)
 
 
-    
-while True:
-    # button A selects which stepper motor to use, it will cycle through 1,2,3,1 etc
-    if button_a.read(): 
-        selected_stepper_motor += 1
-        selected_stepper_motor =  selected_stepper_motor %5
-        if ( selected_stepper_motor == 3):
-            # steps field selected. options are 1,10,1000 per press
-            steps_field_selected = 1
-            memory_field_selected = 0
-        elif ( selected_stepper_motor == 4):
-            # memory selected 0 .. 9
-            steps_field_selected = 0
-            memory_field_selected = 1
-        else:
-           # stepper live control selected
-            steps_field_selected = 0
-            memory_field_selected = 0            
+
+    # Sets the pen colour to black then uses that to paint the whole screen black, not forgetting to update the display
+    def clear(self):
+        self.display.set_pen(self.BLACK)
+        self.display.clear()
+        self.display.update()
+
+    # once a vaiable has been changed, update the display from the instance's local variables
+    def display_steppers(self):
+        self.display.set_pen(self.BLACK)
+        self.display.clear()
+        self.display.set_pen(self.GREEN)
+        self.display.rectangle(0, ((self.selected_stepper_motor+1) * 40), 320, 40)
+        self.display.set_pen(self.MAGENTA)
+        self.display.text(f"IP: {self.ip_address}", 0, 20, 320, scale=1 )
+        self.display.set_pen(self.WHITE)    
+        self.display.text(f"Stepper 1: { self.stepper_values[0] }", 0, 60, 320, scale=1)
+        self.display.text(f"Stepper 2: { self.stepper_values[1] }", 0, 100, 320, scale=1)
+        self.display.text(f"Stepper 3: { self.stepper_values[2] }", 0, 140, 320, scale=1)
+        self.display.text(f"Steps: { self.steps_per_push }", 0, 180, 320, scale=1)
+        self.display.text(f"Memory: { self.memory_number }", 0, 220, 320, scale=1)
+        self.display.update()
+
+    def set_ip(self,ipaddress):
+        self.ip_address = ipaddress
+        self.display_steppers()
+
+
+    def set_steppers(self,stepper_input_values):
+        self.stepper_values = stepper_input_values
+        self.display_steppers()        
+
+
+    def set_memory(self,mem_no):
+        self.memory_number = mem_no
+        self.display_steppers()
+
+    def check_buttons(self):
+        while True:
+            # button A selects which stepper motor to use, it will cycle through 1,2,3,1 etc
+            if (self.button_a.read()): 
+                self.selected_stepper_motor += 1
+                self.selected_stepper_motor =  self.selected_stepper_motor %5
+                if ( self.selected_stepper_motor == 3):
+                    # steps field selected. options are 1,10,1000 per press
+                    self.steps_field_selected = 1
+                    self.memory_field_selected = 0
+                elif ( self.selected_stepper_motor == 4):
+                    # memory selected 0 .. 9
+                    self.steps_field_selected = 0
+                    self.memory_field_selected = 1
+                else:
+                   # stepper live control selected
+                    self.steps_field_selected = 0
+                    self.memory_field_selected = 0            
+                    
+                self.display_steppers()
+
+            elif (self.button_b.read()):
+                self.display.set_pen(BLACK)
+                self.display.clear()
+                self.display.set_pen(MAGENTA)
+                self.display.text("Do not  ", 0, 30, 320, scale=2)
+                self.display.text("press this ", 0, 80, 320, scale=2)        
+                self.display.text("button ", 0, 140, 320, scale=2)
+                self.display.text("again !", 0, 200, 320, scale=2)        
+                self.display_steppers()
             
-        display_steppers(ip_address,steppers,steps_per_push, memory_number)
+            elif (self.button_x.read()): # ToDo check limits
+                if ( (self.steps_field_selected == 0) and (self.memory_field_selected == 0) ):
+                    self.stepper_values[self.selected_stepper_motor] += self.steps_per_push
+                elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ):
+                    self.steps_per_push = self.steps_per_push * 10
+                elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ):
+                    self.memory_number = self.memory_number + 1
+                self.display_steppers()
+                
+            elif self.button_y.read(): # ToDo should only be able to select 1,10,100,1000
+                if ( (self.steps_field_selected == 0) and (self.memory_field_selected == 0) ):
+                    self.stepper_values[self.selected_stepper_motor] -= self.steps_per_push
+                elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ):
+                    self.steps_per_push = self.steps_per_push / 10
+                elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ):
+                    self.memory_number = self.memory_number - 1
+                self.display_steppers()                    
+                    
+            else:
+                #print("Unknown button!")
+                pass
 
-    elif button_b.read():
-        display.set_pen(BLACK)
-        display.clear()
-        display.set_pen(MAGENTA)
-        display.text("Do not  ", 0, 30, 320, scale=2)
-        display.text("press this ", 0, 80, 320, scale=2)        
-        display.text("button ", 0, 140, 320, scale=2)
-        display.text("again !", 0, 200, 320, scale=2)        
-        display.update()
-        pass
+            time.sleep(0.1)  # this number is how frequently the Pico checks for button presses
+        
+if __name__ == '__main__':
+    user_display = LocalDisplay()
+    user_display.set_ip('1.1.1.1')
+    user_display.set_memory('3')
+    while True :
+        user_display.check_buttons()
     
-    elif button_x.read():
-        if ( (steps_field_selected == 0) and (memory_field_selected == 0) ):
-            steppers[selected_stepper_motor] += steps_per_push
-            display_steppers(ip_address,steppers, steps_per_push,memory_number)
-        elif ( (steps_field_selected == 1) and (memory_field_selected == 0) ):
-            steps_per_push = steps_per_push * 10
-        elif ( (steps_field_selected == 0) and (memory_field_selected == 1) ):
-            memory_number += 1
-
-    elif button_y.read():
-        if ( (steps_field_selected == 0) and (memory_field_selected == 0) ):
-            steppers[selected_stepper_motor] -= steps_per_push
-            display_steppers(ip_address,steppers,steps_per_push,memory_number)
-        elif ( (steps_field_selected == 1) and (memory_field_selected == 0) ):
-                       steps_per_push = steps_per_push / 10
-        elif ( (steps_field_selected == 0) and (memory_field_selected == 1) ):
-            memory_number -= 1
-            
-    else:
-        pass
-        #display.set_pen(GREEN)
-        #display.text("Unknown button!", 10, 10, 240, 4)
-        #display.update()
-    time.sleep(0.1)  # this number is how frequently the Pico checks for button presses
+    
