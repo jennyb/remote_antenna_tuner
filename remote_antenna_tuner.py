@@ -5,6 +5,26 @@ from machine import Pin
 import os
 import json
 from storage import Storage
+import display_handling 
+
+# Hardware
+# Display LED R 9
+# Display LED B 10
+# Display LED B 11
+# Display LCD_TE 27
+# Display Backlight En 26
+# Display LCD_MOSI 25
+# Display LCD_SCLK 24
+# Display LCD_CS 22
+# Display LCD_DC 21
+button_a = Pin(12, mode=Pin.IN, pull=Pin.PULL_UP)
+button_b = Pin(13, mode=Pin.IN, pull=Pin.PULL_UP)
+button_x = Pin(14, mode=Pin.IN, pull=Pin.PULL_UP)
+button_y = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
+
+def button_isr(pin):
+    user_display.button_a_pressed()
+    #pin_led.value(not pin_led.value())
 
 class Stepper:
     def __init__(self, name:str, step_pin:Pin, dir_pin:Pin, counter=0):
@@ -18,20 +38,29 @@ class Stepper:
     def rotate(self, direction, steps):
         print (f'Rotating : name: {self.name}, direction: {direction}, steps: {steps}')
         self.dir_pin.value(direction)
-        stepper_enable.value(0)
+        stepper_enable.value(0) # set the hardware enable to be active low 
         sleep(0.01)
    
         for step in range(0, steps):
+            if (direction ):
+                self.counter += 1
+            else :
+                # this is where we stop the stepper motor going to a negative value
+                # for a rollercoaster tuning inductor this would just hit the zero end stop and be meaningless
+                # for a variable capacitor, they are only useful between 0 and 180 degrees.
+                # Outside this they are just repeating the same capacitance 
+                if self.counter > 0: 
+                    self.counter -= 1
+                else:
+                    break # drop out of the For loop, because we do not want to reverse the motor beyond/before 0
             self.step_pin.value(1)
             sleep(0.01)
             self.step_pin.value(0)
             sleep(0.01)
-            if (direction ):
-                self.counter += 1
-            else :
-                self.counter -= 1
+
+                    
         sleep(0.1)
-        stepper_enable.value(1)
+        stepper_enable.value(1) # set the hardware enable to be inactive high
         
     def set(self, new_position:int ):
         pass
@@ -90,6 +119,7 @@ def connect():
         print('Waiting for connection...')
         sleep(1)
     ip = wlan.ifconfig()[0]
+    user_display.set_ip(ip)
     print(f'Connected on {ip}')
     return ip
 
@@ -102,7 +132,7 @@ def open_socket(ip):
     connection.listen(1)
     return connection
 
-def webpage(temperature, state):
+def webpage(state):
     #Template HTML
     html = f"""
             <!DOCTYPE html>
@@ -139,7 +169,25 @@ def webpage(temperature, state):
             <input type="submit" name='m_0_0_3' value="Recall 80m High" />
             <input type="submit" name='m_0_1_2' value="Save 80m Low" />
             <input type="submit" name='m_0_1_3' value="Save 80m High" />
-            </form> 
+            </form>
+            <form>
+            <input type="submit" name='m_0_0_4' value="Recall 60m Low" />
+            <input type="submit" name='m_0_0_5' value="Recall 60m High" />
+            <input type="submit" name='m_0_1_4' value="Save 60m Low" />
+            <input type="submit" name='m_0_1_5' value="Save 60m High" />
+            </form>
+            <form>
+            <input type="submit" name='m_0_0_6' value="Recall 40m Low" />
+            <input type="submit" name='m_0_0_7' value="Recall 40m High" />
+            <input type="submit" name='m_0_1_6' value="Save 40m Low" />
+            <input type="submit" name='m_0_1_7' value="Save 40m High" />
+            </form>
+            <form>
+            <input type="submit" name='m_0_0_8' value="Recall 30m Low" />
+            <input type="submit" name='m_0_0_9' value="Recall 30m High" />
+            <input type="submit" name='m_0_1_8' value="Save 30m Low" />
+            <input type="submit" name='m_0_1_9' value="Save 30m High" />
+            </form>             
             </body>
             </html>
             """
@@ -149,7 +197,7 @@ def webpage(temperature, state):
 def serve(connection):
     #Start a web server
     state = 'OFF'
-    temperature = 0
+    # ToDo remove unwanted temperaturetemperature = 0
     while True:
         client = connection.accept()[0]
         request = client.recv(1024)
@@ -175,6 +223,7 @@ def serve(connection):
                 #save_motor_positions(motors[0].counter,motors[1].counter,motors[2].counter)
                 stepper_positions = [motors[0].counter, motors[1].counter, motors[2].counter]
                 nv_data.write_current_steppers( file, stepper_positions )
+                user_display.set_steppers( stepper_positions )
                 #nv_data.write_current_steppers( file, [motors[0].counter,motors[1].counter,motors[2].counter] )
                 
             elif f == 'm':
@@ -205,13 +254,17 @@ def serve(connection):
             #print('name length incorrect')
         
         
-        html = webpage(temperature, state)
+        html = webpage(state)
         client.send(html)
         client.close()
 
 
+button_a.irq(trigger=Pin.IRQ_FALLING,handler=button_isr)
+
 file = 'xyzzy.txt'
 nv_data = Storage(file)
+user_display = display_handling.LocalDisplay()
+user_display.display_steppers()
 
 try:
     ip=connect()
