@@ -21,10 +21,20 @@ button_a = Pin(12, mode=Pin.IN, pull=Pin.PULL_UP)
 button_b = Pin(13, mode=Pin.IN, pull=Pin.PULL_UP)
 button_x = Pin(14, mode=Pin.IN, pull=Pin.PULL_UP)
 button_y = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
+stepper_enable = Pin(3, Pin.OUT, value=1 )
 
-def button_isr(pin):
+def button_a_isr(pin):
     user_display.button_a_pressed()
     #pin_led.value(not pin_led.value())
+    
+def button_b_isr(pin):
+    user_display.button_b_pressed()    
+
+def button_x_isr(pin):
+    user_display.button_x_pressed()
+
+def button_y_isr(pin):
+    user_display.button_y_pressed()
 
 class Stepper:
     def __init__(self, name:str, step_pin:Pin, dir_pin:Pin, counter=0):
@@ -65,39 +75,13 @@ class Stepper:
     def set(self, new_position:int ):
         pass
 
-# class Memory:
-#     def __init__(self, steps1:int, steps2:int, steps3:int):
-#         # ToDo - read the initial value from a file holding the last readings before being switched off
-#         # self.name = name
-#         self.store(steps1, steps2, steps3)
-#         
-#     def store(self, steps1:int, steps2:int, steps3:int):
-#         self.steps1 = steps1
-#         self.steps2 = steps2
-#         self.steps3 = steps3
-#         pass
-#         
-#     def recall(self):
-#         return [ self.steps1,self.steps2,self.steps3]
-    
-# the pi pico is connected to a cheap CNC driver boad
-# pins X,Y,Z step and X,Y,Z dir and one enable pin for all
-# are connected to 9,8,7 step and 6,5,4 direction and 3 enable
 
 motors = [Stepper('transmitter', Pin(9), Pin(6)),
           Stepper('antenna', Pin(8), Pin(5)),
           Stepper('inductance', Pin(7), Pin(4))]
 
-# Each memory holds 3 step counts. Currently one for each transmitter, antenna and inductance
-# ToDo - I've had to do this longhand, need to make the number of memories configurable 
-# memories = [Memory(0,0,0),
-#             Memory(0,0,0),
-#             Memory(0,0,0),
-#             Memory(0,0,0),
-#             Memory(0,0,0),
-#             Memory(0,0,0),
-#             Memory(0,0,0),            
-#             Memory(0,0,0)]
+# ToDo - Make the number of memories configurable 
+
 
 stepper_enable = Pin(3, Pin.OUT, value=1 )
 
@@ -111,15 +95,24 @@ def connect():
     for w in networks:
         print(f'SSID: {w[0]},\t\t Channel: {w[2]},\t signal strength: {w[3]}' )
 
-
+    # ToDo - list SSIDs onto the dosplay
     print( f'Connecting to SSID: {nv_data.get_ssid()}')
     wlan.connect(str(nv_data.get_ssid()),  str(nv_data.get_password()) )
     
+    connection_timeout = 10      # sometimes the wlan keep trying and never gets a connection. Reset after 10 tries
     while wlan.isconnected() == False:
-        print('Waiting for connection...')
+        connection_timeout -= 1
+        if not connection_timeout :
+            print('reboot forced due to no wlan connection')
+            machine.reset()    
+        print(f'Waiting for IP address. {connection_timeout} seconds left')
         sleep(1)
+    
+    
+    
     ip = wlan.ifconfig()[0]
     user_display.set_ip(ip)
+    # update display to show IP AND signal level
     print(f'Connected on {ip}')
     return ip
 
@@ -259,7 +252,10 @@ def serve(connection):
         client.close()
 
 
-button_a.irq(trigger=Pin.IRQ_FALLING,handler=button_isr)
+button_a.irq(trigger=Pin.IRQ_FALLING,handler=button_a_isr)
+button_b.irq(trigger=Pin.IRQ_FALLING,handler=button_b_isr)
+button_x.irq(trigger=Pin.IRQ_FALLING,handler=button_x_isr)
+button_y.irq(trigger=Pin.IRQ_FALLING,handler=button_y_isr)
 
 file = 'xyzzy.txt'
 nv_data = Storage(file)
