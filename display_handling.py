@@ -1,6 +1,6 @@
 #based on micropython/examples/pico_display/button_test.py
 import time
-from pimoroni import Button
+#from pimoroni import Button
 from picographics import PicoGraphics, DISPLAY_PICO_DISPLAY_2, PEN_P4
 
 

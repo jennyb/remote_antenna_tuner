@@ -125,6 +125,7 @@ def open_socket(ip):
     connection.listen(1)
     return connection
 
+
 def webpage(state):
     #Template HTML
     html = f"""
