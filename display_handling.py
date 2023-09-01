@@ -73,7 +73,7 @@ class LocalDisplay:
             ssid_name = str(networks[ssid][0])
             ssid_channel = networks[ssid][2]
             ssid_sig = networks[ssid][3]
-            self.display.text(f'{ssid_name} {ssid_sig}dBm, Ch{ssid_channel}, ', 0, 20+(40*ssid), 320, scale=1 )
+            self.display.text(f'{ssid_name} {ssid_sig}dBm, Ch{ssid_channel}', 0, 20+(40*ssid), 320, scale=1 )
         self.display.update()
 
     def set_steppers(self,stepper_input_values):
@@ -116,19 +116,22 @@ class LocalDisplay:
     def button_x_pressed(self):
         if ( (self.steps_field_selected == 0) and (self.memory_field_selected == 0) ):
             self.stepper_values[self.selected_stepper_motor] += self.steps_per_push
-        elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ):
+        elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ): # ToDo make sure that only steps per push can equal 1,10,100 0r 1000
             self.steps_per_push = self.steps_per_push * 10
-        elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ):
+        elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ): # ToDo Make sure memory number is valid
             self.memory_number = self.memory_number + 1
         self.display_steppers()    
     
     def button_y_pressed(self):
         # ToDo the stepper motor can never move backwards to below zero
-        if ( (self.steps_field_selected == 0) and (self.memory_field_selected == 0) ):
-            self.stepper_values[self.selected_stepper_motor] -= self.steps_per_push
-        elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ):
+        if ((self.steps_field_selected == 0) and (self.memory_field_selected == 0)): 
+            if ( self.stepper_values[self.selected_stepper_motor] - self.steps_per_push ) > 0:
+                self.stepper_values[self.selected_stepper_motor] -= self.steps_per_push # verify this does not go below zero
+            else :
+                self.stepper_values[self.selected_stepper_motor] = 0
+        elif ( (self.steps_field_selected == 1) and (self.memory_field_selected == 0) ): # ToDo make sure that only steps per push can equal 1,10,100 0r 1000
             self.steps_per_push = self.steps_per_push / 10
-        elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ):
+        elif ( (self.steps_field_selected == 0) and (self.memory_field_selected == 1) ): # ToDo Make sure memory number is valid
             self.memory_number = self.memory_number - 1
         self.display_steppers()                      
 
@@ -160,6 +163,6 @@ if __name__ == '__main__':
     user_display.set_steppers([7,8,9])
     time.sleep(1)
     
-    network_display = [['J2N2', 0, 3, -67], ['\x00\x00\x00\x00\x00\x00\x00\x00\x00', 0, 1, -84], ['BT-RTAH93', 0, 1, -82], ['BTWi-fi', 0, 1, -85], ['J2', 0, 3, -69], ['J2N3', 0, 11, -58], ['BT-J6CWW3', 0, 11, -88],['BTWi-fi', 0, 11, -88]]
+    network_display = [['J2N2', 0, 3, -67], ['Test', 0, 1, -84], ['BT-RTAH93', 0, 1, -82], ['BTWi-fi', 0, 1, -85], ['J2', 0, 3, -69], ['J2N3', 0, 11, -58], ['BT-J6CWW3', 0, 11, -88],['BTWi-fi', 0, 11, -88]]
     user_display.display_networks( network_display )
     

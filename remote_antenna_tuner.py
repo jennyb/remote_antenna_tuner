@@ -263,7 +263,7 @@ button_y.irq(trigger=Pin.IRQ_FALLING,handler=button_y_isr)
 file = 'xyzzy.txt'
 nv_data = Storage(file)
 user_display = display_handling.LocalDisplay()
-user_display.display_steppers()
+#user_display.display_steppers()
 
 try:
     ip=connect()
