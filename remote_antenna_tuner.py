@@ -21,7 +21,9 @@ button_a = Pin(12, mode=Pin.IN, pull=Pin.PULL_UP)
 button_b = Pin(13, mode=Pin.IN, pull=Pin.PULL_UP)
 button_x = Pin(14, mode=Pin.IN, pull=Pin.PULL_UP)
 button_y = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
-stepper_enable = Pin(3, Pin.OUT, value=1 )
+stepper_enable = Pin(3, Pin.OUT, value=1 ) 	# active low. The current cnc interface board has one common stepper motor driver enble line.
+                                            # this is the current cnc interface https://www.az-delivery.uk/products/az-delivery-cnc-shield-v3
+                                            # My new PCB will have one enable for each stepper motor driver
 
 def button_a_isr(pin):
     user_display.button_a_pressed()
@@ -82,9 +84,6 @@ motors = [Stepper('transmitter', Pin(9), Pin(6)),
 
 # ToDo - Make the number of memories configurable 
 
-
-stepper_enable = Pin(3, Pin.OUT, value=1 )
-
 def connect():
     #Connect to WLAN
     wlan = network.WLAN(network.STA_IF)
@@ -95,6 +94,9 @@ def connect():
     for w in networks:
         print(f'SSID: {w[0]},\t\t Channel: {w[2]},\t signal strength: {w[3]}' )
 
+    user_display.display_networks(networks)
+
+    
     # ToDo - list SSIDs onto the dosplay
     print( f'Connecting to SSID: {nv_data.get_ssid()}')
     wlan.connect(str(nv_data.get_ssid()),  str(nv_data.get_password()) )

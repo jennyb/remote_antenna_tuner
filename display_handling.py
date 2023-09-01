@@ -49,8 +49,7 @@ class LocalDisplay:
 
     # once a vaiable has been changed, update the display from the instance's local variables
     def display_steppers(self):
-        self.display.set_pen(self.BLACK)
-        self.display.clear()
+        self.clear()
         self.display.set_pen(self.GREEN)
         self.display.rectangle(0, ((self.selected_stepper_motor+1) * 40), 320, 40)
         self.display.set_pen(self.MAGENTA)
@@ -67,6 +66,15 @@ class LocalDisplay:
         self.ip_address = ipaddress
         self.display_steppers()
 
+    def display_networks(self, networks):
+        self.clear()
+        self.display.set_pen(self.WHITE)
+        for ssid in range (6):
+            ssid_name = str(networks[ssid][0])
+            ssid_channel = networks[ssid][2]
+            ssid_sig = networks[ssid][3]
+            self.display.text(f'{ssid_name} {ssid_sig}dBm, Ch{ssid_channel}, ', 0, 20+(40*ssid), 320, scale=1 )
+        self.display.update()
 
     def set_steppers(self,stepper_input_values):
         self.stepper_values = stepper_input_values
@@ -150,5 +158,8 @@ if __name__ == '__main__':
     user_display.set_steppers([4,5,6])
     time.sleep(1)    
     user_display.set_steppers([7,8,9])
-    time.sleep(1)    
+    time.sleep(1)
+    
+    network_display = [['J2N2', 0, 3, -67], ['\x00\x00\x00\x00\x00\x00\x00\x00\x00', 0, 1, -84], ['BT-RTAH93', 0, 1, -82], ['BTWi-fi', 0, 1, -85], ['J2', 0, 3, -69], ['J2N3', 0, 11, -58], ['BT-J6CWW3', 0, 11, -88],['BTWi-fi', 0, 11, -88]]
+    user_display.display_networks( network_display )
     
