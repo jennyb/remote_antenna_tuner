@@ -8,9 +8,9 @@ from picographics import PicoGraphics, DISPLAY_PICO_DISPLAY_2, PEN_P4
 
 class LocalDisplay:
 
-    def __init__(self):
+    def __init__(self, incomming_stepper_values):
 
-        self.stepper_values = [0,0,0] # current location of each stepper motors in steps where one full rotation = 200 steps 
+        self.stepper_values =  incomming_stepper_values # current location of each stepper motors in steps where one full rotation = 200 steps 
         self.ip_address = "0.0.0.0" # set by the wifi code and just dumbly displayed to the user
         self.steps_per_push = 1
         self.memory_number = 1
@@ -70,7 +70,11 @@ class LocalDisplay:
         self.clear()
         self.display.set_pen(self.WHITE)
         for ssid in range (6):
-            ssid_name = str(networks[ssid][0])
+            #ToDo failing to convert byte array from the SSID to a string for the LCD display 
+            #print(f'SSID before {networks[ssid][0]}')
+            #ssid_name = str(networks[ssid][0])
+            ssid_name = networks[ssid][0].decode('utf-8')
+            #print(f'SSID after {ssid_name}')            
             ssid_channel = networks[ssid][2]
             ssid_sig = networks[ssid][3]
             self.display.text(f'{ssid_name} {ssid_sig}dBm, Ch{ssid_channel}', 0, 20+(40*ssid), 320, scale=1 )
@@ -137,7 +141,7 @@ class LocalDisplay:
 
 
 if __name__ == '__main__':
-    user_display = LocalDisplay()
+    user_display = LocalDisplay([0,0,0])
 
     user_display.set_ip('1.1.1.1')
     user_display.set_memory('3')
@@ -163,6 +167,6 @@ if __name__ == '__main__':
     user_display.set_steppers([7,8,9])
     time.sleep(1)
     
-    network_display = [['J2N2', 0, 3, -67], ['Test', 0, 1, -84], ['BT-RTAH93', 0, 1, -82], ['BTWi-fi', 0, 1, -85], ['J2', 0, 3, -69], ['J2N3', 0, 11, -58], ['BT-J6CWW3', 0, 11, -88],['BTWi-fi', 0, 11, -88]]
+    network_display = [[b'J2N2', 0, 3, -67], [b'Test', 0, 1, -84], [b'BT-RTAH93', 0, 1, -82], [b'BTWi-fi', 0, 1, -85], [b'J2', 0, 3, -69], [b'J2N3', 0, 11, -58], [b'BT-J6CWW3', 0, 11, -88],[b'BTWi-fi', 0, 11, -88]]
     user_display.display_networks( network_display )
     

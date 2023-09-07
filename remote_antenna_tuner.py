@@ -89,19 +89,31 @@ def connect():
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     
-    #List all available networks
-    networks = wlan.scan() # list with tupples with 6 fields ssid, bssid, channel, RSSI, security, hidden    
-    for w in networks:
-        print(f'SSID: {w[0]},\t\t Channel: {w[2]},\t signal strength: {w[3]}' )
-
-    user_display.display_networks(networks)
-
     
-    # ToDo - list SSIDs onto the dosplay
+    # List all available networks
+    # if no networks are available, wait then try again. 
+    # networks is an array of tupples with 6 fields ssid, bssid, channel, RSSI, security, hidden 
+    while True :
+        networks = wlan.scan()
+
+        number_of_networks = len(networks)     
+        if number_of_networks == 0:
+            # make an empty network to display that there is no network.
+            networks = [('None',0,0,0,0,0)]
+            user_display.display_networks(networks)
+            sleep(10)
+        else :
+            # at least one network has been found ( it may not include the one that we want )      
+            for w in networks:
+                print(f'SSID: {w[0]},\t\t Channel: {w[2]},\t signal strength: {w[3]}\n' )
+            user_display.display_networks(networks)
+            break
+    
+
     print( f'Connecting to SSID: {nv_data.get_ssid()}')
     wlan.connect(str(nv_data.get_ssid()),  str(nv_data.get_password()) )
     
-    connection_timeout = 10      # sometimes the wlan keep trying and never gets a connection. Reset after 10 tries
+    connection_timeout = 10      # sometimes the wlan keep trying and never gets a connection. Reset the Pico after 10 tries
     while wlan.isconnected() == False:
         connection_timeout -= 1
         if not connection_timeout :
@@ -109,9 +121,7 @@ def connect():
             machine.reset()    
         print(f'Waiting for IP address. {connection_timeout} seconds left')
         sleep(1)
-    
-    
-    
+      
     ip = wlan.ifconfig()[0]
     user_display.set_ip(ip)
     # update display to show IP AND signal level
@@ -262,8 +272,10 @@ button_y.irq(trigger=Pin.IRQ_FALLING,handler=button_y_isr)
 
 file = 'xyzzy.txt'
 nv_data = Storage(file)
-user_display = display_handling.LocalDisplay()
-#user_display.display_steppers()
+user_display = display_handling.LocalDisplay(nv_data.get_stepper_positions())
+[motors[0].counter, motors[1].counter, motors[2].counter] = nv_data.get_stepper_positions()
+#ser_display.set_steppers(nv_data.get_stepper_positions())
+
 
 try:
     ip=connect()
