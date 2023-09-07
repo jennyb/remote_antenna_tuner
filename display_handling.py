@@ -69,7 +69,8 @@ class LocalDisplay:
     def display_networks(self, networks):
         self.clear()
         self.display.set_pen(self.WHITE)
-        for ssid in range (6):
+        number_of_networks = len(networks)
+        for ssid in range (number_of_networks):
             #ToDo failing to convert byte array from the SSID to a string for the LCD display 
             #print(f'SSID before {networks[ssid][0]}')
             #ssid_name = str(networks[ssid][0])
@@ -169,4 +170,9 @@ if __name__ == '__main__':
     
     network_display = [[b'J2N2', 0, 3, -67], [b'Test', 0, 1, -84], [b'BT-RTAH93', 0, 1, -82], [b'BTWi-fi', 0, 1, -85], [b'J2', 0, 3, -69], [b'J2N3', 0, 11, -58], [b'BT-J6CWW3', 0, 11, -88],[b'BTWi-fi', 0, 11, -88]]
     user_display.display_networks( network_display )
-    
+   
+    network_display = [[b'J2N2', 0, 3, -67]]
+    user_display.display_networks( network_display )
+
+   
+   
