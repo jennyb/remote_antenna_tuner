@@ -25,6 +25,17 @@ stepper_enable = Pin(3, Pin.OUT, value=1 ) 	# active low. The current cnc interf
                                             # this is the current cnc interface https://www.az-delivery.uk/products/az-delivery-cnc-shield-v3
                                             # My new PCB will have one enable for each stepper motor driver
 
+# transmitter step Pin(9)
+# transmitter dir  Pin(6)
+# antenna step     Pin(8)
+# antenna dir      Pin(5)
+# inductance step  Pin(7)
+# inductance dir   Pin(4)
+
+
+
+
+
 def button_a_isr(pin):
     user_display.button_a_pressed()
     #pin_led.value(not pin_led.value())
