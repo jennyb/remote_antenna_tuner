@@ -69,6 +69,11 @@ class LocalDisplay:
     def display_networks(self, networks):
         self.clear()
         self.display.set_pen(self.WHITE)
+        
+        print(networks)
+        networks.sort(reverse = True, key=lambda a: a[3])
+        print(networks)  
+        
         number_of_networks = len(networks)
         for ssid in range (number_of_networks):
             #ToDo failing to convert byte array from the SSID to a string for the LCD display 
