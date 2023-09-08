@@ -70,21 +70,19 @@ class LocalDisplay:
         self.clear()
         self.display.set_pen(self.WHITE)
         
-        print(networks)
+        #sort by signal strength. -50dBm is stronger than -80dBm
         networks.sort(reverse = True, key=lambda a: a[3])
-        print(networks)  
         
         number_of_networks = len(networks)
-        for ssid in range (number_of_networks):
-            #ToDo failing to convert byte array from the SSID to a string for the LCD display 
-            #print(f'SSID before {networks[ssid][0]}')
-            #ssid_name = str(networks[ssid][0])
-            ssid_name = networks[ssid][0].decode('utf-8')
-            #print(f'SSID after {ssid_name}')            
-            ssid_channel = networks[ssid][2]
-            ssid_sig = networks[ssid][3]
-            self.display.text(f'{ssid_name} {ssid_sig}dBm, Ch{ssid_channel}', 0, 20+(40*ssid), 320, scale=1 )
-        self.display.update()
+        network_fields = len(networks[0])
+        if (number_of_networks > 0 ) and ( network_fields > 0 ):
+            for ssid in range (number_of_networks):
+                # ToDo failing to convert byte array from the SSID to a string for the LCD display 
+                ssid_name = networks[ssid][0].decode('utf-8')
+                ssid_channel = networks[ssid][2]
+                ssid_sig = networks[ssid][3]
+                self.display.text(f'{ssid_name} {ssid_sig}dBm, Ch{ssid_channel}', 0, 20+(40*ssid), 320, scale=1 )
+            self.display.update()
 
     def set_steppers(self,stepper_input_values):
         self.stepper_values = stepper_input_values
@@ -175,9 +173,14 @@ if __name__ == '__main__':
     
     network_display = [[b'J2N2', 0, 3, -67], [b'Test', 0, 1, -84], [b'BT-RTAH93', 0, 1, -82], [b'BTWi-fi', 0, 1, -85], [b'J2', 0, 3, -69], [b'J2N3', 0, 11, -58], [b'BT-J6CWW3', 0, 11, -88],[b'BTWi-fi', 0, 11, -88]]
     user_display.display_networks( network_display )
-   
+    time.sleep(5)
+    
+    # test display only one network data entry
     network_display = [[b'J2N2', 0, 3, -67]]
     user_display.display_networks( network_display )
-
-   
-   
+    time.sleep(5)
+    
+    # test display no network data
+    network_display = [[]]
+    user_display.display_networks( network_display )
+    time.sleep(5)
