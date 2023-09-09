@@ -31,6 +31,7 @@ stepper_enable = Pin(3, Pin.OUT, value=1 ) 	# active low. The current cnc interf
 # antenna dir      Pin(5)
 # inductance step  Pin(7)
 # inductance dir   Pin(4)
+led = Pin("LED", Pin.OUT)
 
 
 
@@ -134,6 +135,8 @@ def connect():
         sleep(1)
       
     ip = wlan.ifconfig()[0]
+    # turn on the onboard LED to show network connection - useful with no display
+    led.on()
     user_display.set_ip(ip)
     # update display to show IP AND signal level
     print(f'Connected on {ip}')
@@ -280,6 +283,13 @@ button_a.irq(trigger=Pin.IRQ_FALLING,handler=button_a_isr)
 button_b.irq(trigger=Pin.IRQ_FALLING,handler=button_b_isr)
 button_x.irq(trigger=Pin.IRQ_FALLING,handler=button_x_isr)
 button_y.irq(trigger=Pin.IRQ_FALLING,handler=button_y_isr)
+
+# interrupt boot if button_a pressed - when this file has been renamed main.py it is difficult to get out of the loop
+# in order to update software
+
+sleep(5)
+if ( button_a == 0 ) :
+    exit()
 
 file = 'xyzzy.txt'
 nv_data = Storage(file)
