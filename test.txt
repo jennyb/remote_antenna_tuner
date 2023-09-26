@@ -1,0 +1,1 @@
+{"stepper_stored_pos": [16, 250, 8], "memory": [[0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 100, 32], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]], "memory_names": [["160m Low"], ["160m High"], ["80m Low"], ["80m High"], ["60m Low"], ["60m High"], ["40m Low"], ["40m High"], ["30m Low"], ["30m High"]], "ssid": "default", "password": "default"}
