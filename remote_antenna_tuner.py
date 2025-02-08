@@ -125,11 +125,12 @@ def connect():
     print( f'Connecting to SSID: {nv_data.get_ssid()}')
     wlan.connect(str(nv_data.get_ssid()),  str(nv_data.get_password()) )
     
-    connection_timeout = 10      # sometimes the wlan keep trying and never gets a connection. Reset the Pico after 10 tries
+    connection_timeout = 20      # sometimes the wlan keep trying and never gets a connection. Reset the Pico after 10 tries
     while wlan.isconnected() == False:
         connection_timeout -= 1
         if not connection_timeout :
             print('reboot forced due to no wlan connection')
+            sleep(5)
             machine.reset()    
         print(f'Waiting for IP address. {connection_timeout} seconds left')
         sleep(1)
@@ -147,7 +148,12 @@ def open_socket(ip):
     # Open a socket
     address = (ip, 80)
     connection = socket.socket()
-    connection.bind(address)
+    try :
+        connection.bind(address) # errors to be caught : File "<stdin>", line 314, in <module>  File "<stdin>", line 151, in open_socket OSError: [Errno 98] EADDRINUSE
+    except:
+        print('reboot forced due to socket already open')
+        sleep(5)
+        machine.reset()  
     connection.listen(1)
     return connection
 
@@ -157,6 +163,7 @@ def webpage(state):
     html = f"""
             <!DOCTYPE html>
             <html>
+            <body>
             <form>
             <input type="submit" name='s_0_0_10' value="Stepper1 Backwards 10" />
             <input type="submit" name='s_0_0_1' value="Stepper1 Backwards 1" />
@@ -207,11 +214,23 @@ def webpage(state):
             <input type="submit" name='m_0_0_9' value="Recall 30m High" />
             <input type="submit" name='m_0_1_8' value="Save 30m Low" />
             <input type="submit" name='m_0_1_9' value="Save 30m High" />
-            </form>             
+            </form>
+            
+            <form>
+            <input type="submit" name='z_0_0_0' value="Zero all capacitors and rollercoaster" />
+            </form>
+            
             </body>
             </html>
             """
     return str(html)
+
+def header(state):
+    #Template HTML
+    html = 'HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n'
+
+    return str(html)
+
 
 
 def serve(connection):
@@ -219,7 +238,7 @@ def serve(connection):
     state = 'OFF'
     while True:
         client = connection.accept()[0]
-        request = client.recv(1024)
+        request = client.recv(1024) # error to handle  File "<stdin>", line 315, in <module>  File "<stdin>", line 233, in serve
         request = str(request)
         print('HTTP client request')
         try:
@@ -268,15 +287,37 @@ def serve(connection):
                             
                         nv_data.write_current_steppers( file, [motors[0].counter,motors[1].counter,motors[2].counter])
 
-                
+            elif f == 'z':
+                #zero the stepper motors and set the mv ram appropriately
+                print('Zero the motors and update the nvram')
+                for each_motor in range(3):
+                        offset = 0 - motors[each_motor].counter
+
+                        if ( offset >= 0 ):
+                            motors[each_motor].rotate(1,offset)
+                        elif ( offset <=0 ):
+                            motors[each_motor].rotate(0,abs(offset))
+                            
+                        nv_data.write_current_steppers( file, [0,0,0])
+
+
         else:
             pass
             #print('name length incorrect')
         
-        
+        html = header(state)
+        client.send(html)
+        sleep(1)
         html = webpage(state)
         client.send(html)
         client.close()
+
+
+#main code
+#we might need a watchdog timer at some point
+#from machine import WDT
+#wdt = WDT(timeout=2000)  # enable it with a timeout of 2s
+#wdt.feed()
 
 
 button_a.irq(trigger=Pin.IRQ_FALLING,handler=button_a_isr)
@@ -300,9 +341,10 @@ user_display = display_handling.LocalDisplay(nv_data.get_stepper_positions())
 
 try:
     ip=connect()
-    connection=open_socket(ip)
+    connection=open_socket(ip) 
     serve(connection)
     connection.close()
     
 except KeyboardInterrupt:
+    connection.close()
     machine.reset()
