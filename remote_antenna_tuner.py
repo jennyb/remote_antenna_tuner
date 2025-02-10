@@ -97,6 +97,7 @@ motors = [Stepper('transmitter', Pin(9), Pin(6)),
 # ToDo - Make the number of memories configurable 
 
 def connect():
+    TIMEOUT = 10
     #Connect to WLAN
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
@@ -125,13 +126,16 @@ def connect():
     print( f'Connecting to SSID: {nv_data.get_ssid()}')
     wlan.connect(str(nv_data.get_ssid()),  str(nv_data.get_password()) )
     
-    connection_timeout = 20      # sometimes the wlan keep trying and never gets a connection. Reset the Pico after 10 tries
+    connection_timeout = TIMEOUT      # sometimes the wlan keep trying and never gets a connection. Reset the Pico after 10 tries
     while wlan.isconnected() == False:
         connection_timeout -= 1
+        if wlan.status() == network.STAT_CONNECT_FAIL:
+            connection_timeout = 0
         if not connection_timeout :
-            print('reboot forced due to no wlan connection')
+            print('Failed to connect: retrying')
             sleep(5)
-            machine.reset()    
+            connection_timeout = TIMEOUT
+            wlan.connect(nv_data.get_ssid(), nv_data.get_password())
         print(f'Waiting for IP address. {connection_timeout} seconds left')
         sleep(1)
       
