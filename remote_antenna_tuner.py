@@ -1,11 +1,11 @@
 import network
-import socket
 from time import sleep
 from machine import Pin
 import os
 import json
 from storage import Storage
 import display_handling 
+import uasyncio as asyncio
 
 # Hardware
 # Display LED R 9
@@ -25,6 +25,10 @@ stepper_enable = Pin(3, Pin.OUT, value=1 ) 	# active low. The current cnc interf
                                             # this is the current cnc interface https://www.az-delivery.uk/products/az-delivery-cnc-shield-v3
                                             # My new PCB will have one enable for each stepper motor driver
 
+motors = [Stepper('transmitter', Pin(9), Pin(6)),
+          Stepper('antenna', Pin(8), Pin(5)),
+          Stepper('inductance', Pin(7), Pin(4))]
+
 # transmitter step Pin(9)
 # transmitter dir  Pin(6)
 # antenna step     Pin(8)
@@ -32,9 +36,6 @@ stepper_enable = Pin(3, Pin.OUT, value=1 ) 	# active low. The current cnc interf
 # inductance step  Pin(7)
 # inductance dir   Pin(4)
 led = Pin("LED", Pin.OUT)
-
-
-
 
 
 def button_a_isr(pin):
@@ -90,79 +91,12 @@ class Stepper:
         pass
 
 
-motors = [Stepper('transmitter', Pin(9), Pin(6)),
-          Stepper('antenna', Pin(8), Pin(5)),
-          Stepper('inductance', Pin(7), Pin(4))]
-
-# ToDo - Make the number of memories configurable 
-
-def connect():
-    TIMEOUT = 10
-    #Connect to WLAN
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    
-    
-    # List all available networks
-    # if no networks are available, wait then try again. 
-    # networks is an array of tupples with 6 fields ssid, bssid, channel, RSSI, security, hidden 
-    while True :
-        networks = wlan.scan()
-
-        number_of_networks = len(networks)     
-        if number_of_networks == 0:
-            # make an empty network to display that there is no network.
-            networks = [('None',0,0,0,0,0)]
-            user_display.display_networks(networks)
-            sleep(10)
-        else :
-            # at least one network has been found ( it may not include the one that we want )      
-            for w in networks:
-                print(f'SSID: {w[0]},\t\t Channel: {w[2]},\t signal strength: {w[3]}\n' )
-            user_display.display_networks(networks)
-            break
-    
-
-    print( f'Connecting to SSID: {nv_data.get_ssid()}')
-    wlan.connect(str(nv_data.get_ssid()),  str(nv_data.get_password()) )
-    
-    connection_timeout = TIMEOUT      # sometimes the wlan keep trying and never gets a connection. Reset the Pico after 10 tries
-    while wlan.isconnected() == False:
-        connection_timeout -= 1
-        if wlan.status() == network.STAT_CONNECT_FAIL:
-            connection_timeout = 0
-        if not connection_timeout :
-            print('Failed to connect: retrying')
-            sleep(5)
-            connection_timeout = TIMEOUT
-            wlan.connect(nv_data.get_ssid(), nv_data.get_password())
-        print(f'Waiting for IP address. {connection_timeout} seconds left')
-        sleep(1)
-      
-    ip = wlan.ifconfig()[0]
-    # turn on the onboard LED to show network connection - useful with no display
-    led.on()
-    user_display.set_ip(ip)
-    # update display to show IP AND signal level
-    print(f'Connected on {ip}')
-    return ip
 
 
-def open_socket(ip):
-    # Open a socket
-    address = (ip, 80)
-    connection = socket.socket()
-    try :
-        connection.bind(address) # errors to be caught : File "<stdin>", line 314, in <module>  File "<stdin>", line 151, in open_socket OSError: [Errno 98] EADDRINUSE
-    except:
-        print('reboot forced due to socket already open')
-        sleep(5)
-        machine.reset()  
-    connection.listen(1)
-    return connection
-
-
-def webpage(state):
+"""
+    Return the static HTML page
+"""
+def webpage():
     #Template HTML
     html = f"""
             <!DOCTYPE html>
@@ -227,96 +161,126 @@ def webpage(state):
             </body>
             </html>
             """
-    return str(html)
+    return html
 
-def header(state):
+"""
+    Return a HTML header
+"""
+def header():
     #Template HTML
     html = 'HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n'
+    return html
 
-    return str(html)
+#
+# Connect to the wireless network, or raise an exception
+#
+def connect_to_network(ssid, password):
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    wlan.config(pm = 0xa11140) # Disable power-save mode
+    wlan.connect(ssid, password)
 
+    max_wait = 10
+    while max_wait > 0:
+        if wlan.status() < 0 or wlan.status() >= 3:
+            break
+    max_wait -= 1
+    print('waiting for connection...')
+    sleep(1)
 
+    if wlan.status() != 3:
+        raise RuntimeError('network connection failed')
+    else:
+        print('connected')
+        status = wlan.ifconfig()
+        print('ip = ' + status[0])
 
-def serve(connection):
-    #Start a web server
-    state = 'OFF'
-    while True:
-        client = connection.accept()[0]
-        request = client.recv(1024) # error to handle  File "<stdin>", line 315, in <module>  File "<stdin>", line 233, in serve
-        request = str(request)
-        print('HTTP client request')
-        try:
-            request = request.split()[1]
-        except IndexError:
-            pass
-        name = request[2:].split('=')[0]
-        if (len(name.split('_')) == 4):
-            # name is f_s_d_n
-            # f function - memory or stepper motor
-            # s stepper motor number
-            # d direction (0,1)
-            # n number of turns
-            f = str(name.split('_')[0])
-            s = int(name.split('_')[1])
-            d = int(name.split('_')[2])
-            n = int(name.split('_')[3])
-            #process name to move stepper motor
-            if f == 's':
-                motors[s].rotate(d,n)
-                #save_motor_positions(motors[0].counter,motors[1].counter,motors[2].counter)
-                stepper_positions = [motors[0].counter, motors[1].counter, motors[2].counter]
-                nv_data.write_current_steppers( file, stepper_positions )
-                user_display.set_steppers( stepper_positions )
-                #nv_data.write_current_steppers( file, [motors[0].counter,motors[1].counter,motors[2].counter] )
-                
-            elif f == 'm':
-                # process name to change stepper motor position memory
-                # where s is ignored, d=0 ( recall ) d=1 ( write ), n is memory number
-                if ( d ):
-                    #save memory
-                    nv_data.write_memory(file, n, [motors[0].counter,motors[1].counter,motors[2].counter])
-                    #memories[n].store( motors[0].counter,motors[1].counter,motors[2].counter )
+"""
+    We have found a request to move servos
+"""
 
-                else:
-                    # recall stepper value for this frequency, workout the change required to go there
-                    for each_motor in range(3):
-                        offset = nv_data.get_memory(n)[each_motor] - motors[each_motor].counter
-                        #for the capacitors, they only should be set 0 - 100 as they are only useful over 180 degrees
-                        #and capacitors should not be sent to negative settings - it will work but will only confuse the situation
-                        #the inductor ( rollercoaster ) should not try to go to a negative reason. Mechanically it cannot go to a negative position 
-                        if ( offset >= 0 ):
-                            motors[each_motor].rotate(1,offset)
-                        elif ( offset <=0 ):
-                            motors[each_motor].rotate(0,abs(offset))
-                            
-                        nv_data.write_current_steppers( file, [motors[0].counter,motors[1].counter,motors[2].counter])
+def process_request(name):
+    if (len(name.split('_')) == 4):
+        # name is f_s_d_n
+        # f function - memory or stepper motor
+        # s stepper motor number
+        # d direction (0,1)
+        # n number of turns
+        f = str(name.split('_')[0])
+        s = int(name.split('_')[1])
+        d = int(name.split('_')[2])
+        n = int(name.split('_')[3])
+        #process name to move stepper motor
+        if f == 's':
+            motors[s].rotate(d,n)
+            #save_motor_positions(motors[0].counter,motors[1].counter,motors[2].counter)
+            stepper_positions = [motors[0].counter, motors[1].counter, motors[2].counter]
+            nv_data.write_current_steppers( file, stepper_positions )
+            user_display.set_steppers( stepper_positions )
+            #nv_data.write_current_steppers( file, [motors[0].counter,motors[1].counter,motors[2].counter] )
+            
+        elif f == 'm':
+            # process name to change stepper motor position memory
+            # where s is ignored, d=0 ( recall ) d=1 ( write ), n is memory number
+            if ( d ):
+                #save memory
+                nv_data.write_memory(file, n, [motors[0].counter,motors[1].counter,motors[2].counter])
+                #memories[n].store( motors[0].counter,motors[1].counter,motors[2].counter )
 
-            elif f == 'z':
-                #zero the stepper motors and set the mv ram appropriately
-                print('Zero the motors and update the nvram')
+            else:
+                # recall stepper value for this frequency, workout the change required to go there
                 for each_motor in range(3):
-                        offset = 0 - motors[each_motor].counter
+                    offset = nv_data.get_memory(n)[each_motor] - motors[each_motor].counter
+                    #for the capacitors, they only should be set 0 - 100 as they are only useful over 180 degrees
+                    #and capacitors should not be sent to negative settings - it will work but will only confuse the situation
+                    #the inductor ( rollercoaster ) should not try to go to a negative reason. Mechanically it cannot go to a negative position 
+                    if ( offset >= 0 ):
+                        motors[each_motor].rotate(1,offset)
+                    elif ( offset <=0 ):
+                        motors[each_motor].rotate(0,abs(offset))
+                        
+                    nv_data.write_current_steppers( file, [motors[0].counter,motors[1].counter,motors[2].counter])
 
-                        if ( offset >= 0 ):
-                            motors[each_motor].rotate(1,offset)
-                        elif ( offset <=0 ):
-                            motors[each_motor].rotate(0,abs(offset))
-                            
-                        nv_data.write_current_steppers( file, [0,0,0])
+        elif f == 'z':
+            #zero the stepper motors and set the mv ram appropriately
+            print('Zero the motors and update the nvram')
+            for each_motor in range(3):
+                    offset = 0 - motors[each_motor].counter
+
+                    if ( offset >= 0 ):
+                        motors[each_motor].rotate(1,offset)
+                    elif ( offset <=0 ):
+                        motors[each_motor].rotate(0,abs(offset))
+                        
+                    nv_data.write_current_steppers( file, [0,0,0])
 
 
-        else:
-            pass
-            #print('name length incorrect')
-        
-        html = header(state)
-        client.send(html)
-        sleep(1)
-        html = webpage(state)
-        client.send(html)
-        client.close()
+async def serve_client(reader, writer):
+    print("Client connected")
+    request_line = await reader.readline()
+    request_line = str(request_line)
+    print("Request:", request_line)
+    # We are not interested in HTTP request headers, skip them
+    while await reader.readline() != b"\r\n":
+        pass
 
+    try:
+        request_line = request_line.split()[1]
+    except IndexError:
+        pass
+    
+    print("line:", request_line)
+    name = request_line[2:].split('=')[0]
+    process_request(name)
+    
+    writer.write(header())
+    writer.write(webpage())
 
+    await writer.drain()
+    await writer.wait_closed()
+    print("Client disconnected")
+    
+    
 #main code
 #we might need a watchdog timer at some point
 #from machine import WDT
@@ -336,19 +300,36 @@ sleep(5)
 if ( button_a == 0 ) :
     exit()
 
+print('Loading config file...')
 file = 'xyzzy.txt'
 nv_data = Storage(file)
 user_display = display_handling.LocalDisplay(nv_data.get_stepper_positions())
 [motors[0].counter, motors[1].counter, motors[2].counter] = nv_data.get_stepper_positions()
 #ser_display.set_steppers(nv_data.get_stepper_positions())
+    
+async def main():
+    print('Loading config file...')
+    file = 'xyzzy.txt'
+    nv_data = Storage(file)
+    user_display = display_handling.LocalDisplay(nv_data.get_stepper_positions())
+    [motors[0].counter, motors[1].counter, motors[2].counter] = nv_data.get_stepper_positions()
+    #ser_display.set_steppers(nv_data.get_stepper_positions())
 
+    print('Connecting to Network...')
+    connect_to_network(nv_data.get_ssid(), nv_data.get_password())
+
+    print('Setting up webserver...')
+    asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 80))
+    while True:
+        await asyncio.sleep(5)
+
+    try:
+        asyncio.run(main())
+    finally:
+        asyncio.new_event_loop()
 
 try:
-    ip=connect()
-    connection=open_socket(ip) 
-    serve(connection)
-    connection.close()
+    asyncio.run(main())
+finally:
+    asyncio.new_event_loop()
     
-except KeyboardInterrupt:
-    connection.close()
-    machine.reset()
