@@ -25,10 +25,6 @@ stepper_enable = Pin(3, Pin.OUT, value=1 ) 	# active low. The current cnc interf
                                             # this is the current cnc interface https://www.az-delivery.uk/products/az-delivery-cnc-shield-v3
                                             # My new PCB will have one enable for each stepper motor driver
 
-motors = [Stepper('transmitter', Pin(9), Pin(6)),
-          Stepper('antenna', Pin(8), Pin(5)),
-          Stepper('inductance', Pin(7), Pin(4))]
-
 # transmitter step Pin(9)
 # transmitter dir  Pin(6)
 # antenna step     Pin(8)
@@ -195,10 +191,12 @@ def connect_to_network(ssid, password):
         status = wlan.ifconfig()
         print('ip = ' + status[0])
 
+    return status[0]
+
+
 """
     We have found a request to move servos
 """
-
 def process_request(name):
     if (len(name.split('_')) == 4):
         # name is f_s_d_n
@@ -271,7 +269,6 @@ async def serve_client(reader, writer):
     
     print("line:", request_line)
     name = request_line[2:].split('=')[0]
-    process_request(name)
     
     writer.write(header())
     writer.write(webpage())
@@ -300,33 +297,27 @@ sleep(5)
 if ( button_a == 0 ) :
     exit()
 
+motors = [Stepper('transmitter', Pin(9), Pin(6)),
+          Stepper('antenna', Pin(8), Pin(5)),
+          Stepper('inductance', Pin(7), Pin(4))]
+
 print('Loading config file...')
 file = 'xyzzy.txt'
 nv_data = Storage(file)
 user_display = display_handling.LocalDisplay(nv_data.get_stepper_positions())
 [motors[0].counter, motors[1].counter, motors[2].counter] = nv_data.get_stepper_positions()
-#ser_display.set_steppers(nv_data.get_stepper_positions())
-    
+working_msg = ''
+
 async def main():
-    print('Loading config file...')
-    file = 'xyzzy.txt'
-    nv_data = Storage(file)
-    user_display = display_handling.LocalDisplay(nv_data.get_stepper_positions())
-    [motors[0].counter, motors[1].counter, motors[2].counter] = nv_data.get_stepper_positions()
-    #ser_display.set_steppers(nv_data.get_stepper_positions())
 
     print('Connecting to Network...')
-    connect_to_network(nv_data.get_ssid(), nv_data.get_password())
-
+    ip = connect_to_network(nv_data.get_ssid(), nv_data.get_password())
+    user_display.set_ip(ip)
+    
     print('Setting up webserver...')
     asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 80))
     while True:
-        await asyncio.sleep(5)
-
-    try:
-        asyncio.run(main())
-    finally:
-        asyncio.new_event_loop()
+        await asyncio.sleep(1)
 
 try:
     asyncio.run(main())
