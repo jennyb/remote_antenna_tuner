@@ -269,7 +269,7 @@ async def serve_client(reader, writer):
     
     print("line:", request_line)
     name = request_line[2:].split('=')[0]
-    
+    process_request(name)   
     writer.write(header())
     writer.write(webpage())
 
